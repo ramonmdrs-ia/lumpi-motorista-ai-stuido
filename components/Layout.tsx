@@ -80,9 +80,13 @@ const Layout: React.FC = () => {
         <div className="flex flex-col gap-8">
           <div className="flex items-center gap-3">
             <div
-              className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-12 ring-2 ring-primary/20 flex items-center justify-center bg-primary/10 text-primary"
+              className={`bg-center bg-no-repeat aspect-square bg-cover rounded-full size-12 ring-2 ring-primary/20 flex items-center justify-center ${!user?.avatar_url ? 'bg-primary/10 text-primary' : ''} overflow-hidden`}
             >
-              <span className="material-symbols-outlined">person</span>
+              {user?.avatar_url ? (
+                <img src={user.avatar_url} alt={displayName} className="w-full h-full object-cover" />
+              ) : (
+                <span className="material-symbols-outlined">person</span>
+              )}
             </div>
             <div className="flex flex-col">
               <h1 className="text-base font-bold leading-tight truncate max-w-[160px]">

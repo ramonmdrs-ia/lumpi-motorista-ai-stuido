@@ -118,6 +118,7 @@ const Menu: React.FC = () => {
         email={user.email || 'usuario@lumpi.app'}
         planLabel={user.plano === 'pro' ? 'Plano PRO' : user.plano === 'admin' ? 'Acesso Adm' : 'Plano Gratuito'}
         roleLabel={isAdmin ? "Admin" : undefined}
+        avatarUrl={user.avatar_url}
       />
 
       {isAdmin && (

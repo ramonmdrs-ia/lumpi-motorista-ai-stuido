@@ -13,11 +13,15 @@ interface UserHeaderProps {
     roleDescription?: string;
 }
 
-export const UserHeader: React.FC<UserHeaderProps> = ({ name, email, planLabel, roleLabel, roleDescription }) => {
+export const UserHeader: React.FC<UserHeaderProps> = ({ name, email, planLabel, roleLabel, avatarUrl }) => {
     return (
         <div className="flex items-center gap-4 py-4">
-            <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center text-primary border-2 border-primary/20 shrink-0">
-                <span className="material-symbols-outlined text-3xl">person</span>
+            <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center text-primary border-2 border-primary/20 shrink-0 overflow-hidden">
+                {avatarUrl ? (
+                    <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+                ) : (
+                    <span className="material-symbols-outlined text-3xl">person</span>
+                )}
             </div>
             <div className="flex flex-col gap-1">
                 <h2 className="text-xl font-bold text-white leading-tight">{name}</h2>
