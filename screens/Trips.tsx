@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, isConfigured } from '../supabaseClient';
+import { usePro } from '../hooks/usePro';
+import { UpgradeModal } from '../components/UpgradeModal';
 
 interface Entry {
   id: number;
@@ -16,9 +18,19 @@ interface Entry {
 
 const Trips: React.FC = () => {
   const navigate = useNavigate();
+  const { isPro, loading: proLoading } = usePro();
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+
+  const handleExport = (format: 'csv' | 'pdf') => {
+    if (!isPro) {
+      setShowUpgrade(true);
+      return;
+    }
+    alert(`Exportando relatório em ${format.toUpperCase()}... (Em breve)`);
+  };
 
   useEffect(() => {
     const userStr = localStorage.getItem('lumpi_user');
@@ -108,11 +120,24 @@ const Trips: React.FC = () => {
     );
   }
 
+  if (proLoading) return <div className="p-10 text-center text-white text-sm">Validando acesso...</div>;
+
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl md:text-3xl font-black text-white">Minhas Entradas</h1>
-        <p className="text-text-secondary text-xs uppercase font-bold tracking-widest">Registros Seguros</p>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl md:text-3xl font-black text-white">Minhas Entradas</h1>
+          <p className="text-text-secondary text-xs uppercase font-bold tracking-widest">Registros Seguros</p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleExport('csv')}
+            className="bg-white/5 hover:bg-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all flex items-center gap-2 border border-white/5"
+          >
+            <span className="material-symbols-outlined text-sm">download</span>
+            Exportar
+          </button>
+        </div>
       </div>
 
       <section className="grid grid-cols-3 gap-3">
@@ -193,7 +218,13 @@ const Trips: React.FC = () => {
       <button onClick={() => navigate('/trips/new')} className="fixed bottom-24 right-6 size-14 bg-primary text-[#102216] rounded-full shadow-lg shadow-primary/20 flex items-center justify-center transition-all z-50 hover:scale-110 active:scale-95">
         <span className="material-symbols-outlined text-3xl font-bold">add</span>
       </button>
-    </div >
+
+      <UpgradeModal
+        isOpen={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        onUpgrade={() => navigate('/subscription')}
+      />
+    </div>
   );
 };
 

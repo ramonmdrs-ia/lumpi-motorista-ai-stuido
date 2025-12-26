@@ -3,11 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { supabase, isConfigured } from '../supabaseClient';
 import { AnalyticsSummary, HighlightMetric, PlatformSummary, WeeklyProfitChart, PerKmBreakdown } from '../components/AnalyticsComponents';
 import { Badge } from '../components/DashboardComponents';
+import { usePro } from '../hooks/usePro';
+import { ProLock } from '../components/ProComponents';
+import { UpgradeModal } from '../components/UpgradeModal';
 
 const Analytics: React.FC = () => {
     const navigate = useNavigate();
+    const { isPro, loading: proLoading } = usePro();
+    const [showUpgrade, setShowUpgrade] = useState(false);
     const [loading, setLoading] = useState(true);
     const [userId, setUserId] = useState<string | null>(null);
+
+    // ... (rest of the state stays the same) ...
 
     // State for Analytics Data
     const [kpis, setKpis] = useState({

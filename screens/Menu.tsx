@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { UserHeader, SettingsSectionTitle, SettingsItem, DangerZone } from '../components/SettingsComponents';
 import { Card } from '../components/DashboardComponents';
+import { ProBadge } from '../components/ProComponents';
 
 const Menu: React.FC = () => {
   const navigate = useNavigate();
@@ -113,7 +114,7 @@ const Menu: React.FC = () => {
       <UserHeader
         name={user.nome || 'Motorista'}
         email={user.email || 'usuario@lumpi.app'}
-        planLabel="Plano PRO"
+        planLabel={user.plano === 'pro' ? 'Plano PRO' : user.plano === 'admin' ? 'Acesso Adm' : 'Plano Gratuito'}
         roleLabel={isAdmin ? "Admin" : undefined}
       />
 
@@ -165,6 +166,7 @@ const Menu: React.FC = () => {
           title="Manutenções"
           description="Registros e alertas de revisão"
           iconName="build"
+          rightElement={<ProBadge />}
           onClick={() => navigate('/maintenance')}
         />
         <SettingsItem
@@ -177,6 +179,7 @@ const Menu: React.FC = () => {
           title="Relatórios"
           description="Exportar dados e análises (LGPD)"
           iconName="download"
+          rightElement={<ProBadge />}
           onClick={exportUserData}
         />
       </Card>

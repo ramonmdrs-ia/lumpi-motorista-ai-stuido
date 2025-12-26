@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 
 const Layout: React.FC = () => {
   const location = useLocation();
@@ -13,7 +14,10 @@ const Layout: React.FC = () => {
     if (userStr) {
       try {
         const parsed = JSON.parse(userStr);
-        if (parsed) setUser(parsed);
+        if (parsed) {
+          setUser(parsed);
+          refreshProfile(parsed.id);
+        }
       } catch (e) {
         navigate('/login');
       }
@@ -21,6 +25,37 @@ const Layout: React.FC = () => {
       navigate('/login');
     }
   }, [navigate]);
+
+  const refreshProfile = async (userId: string) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (profile && !error) {
+        const userStr = localStorage.getItem('lumpi_user');
+        const currentUser = userStr ? JSON.parse(userStr) : {};
+
+        // Update local state and storage if plan has changed
+        if (profile.plano !== currentUser.plano || profile.pro_until !== currentUser.pro_until) {
+          const updatedUser = {
+            ...currentUser,
+            nome: profile.nome_completo || currentUser.nome,
+            plano: profile.plano || 'free',
+            pro_until: profile.pro_until
+          };
+          localStorage.setItem('lumpi_user', JSON.stringify(updatedUser));
+          setUser(updatedUser);
+          // Dispatch storage event to notify other hooks (like usePro)
+          window.dispatchEvent(new Event('storage'));
+        }
+      }
+    } catch (e) {
+      console.error('Error refreshing profile:', e);
+    }
+  };
 
   const navItems = [
     { path: '/dashboard', label: 'Início', icon: 'home' },
@@ -62,8 +97,8 @@ const Layout: React.FC = () => {
                 key={item.path}
                 to={item.path}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors group ${isActive(item.path)
-                    ? 'bg-primary/10 ring-1 ring-primary/20'
-                    : 'hover:bg-[#1c2e24]'
+                  ? 'bg-primary/10 ring-1 ring-primary/20'
+                  : 'hover:bg-[#1c2e24]'
                   }`}
               >
                 <span className={`material-symbols-outlined ${isActive(item.path) ? 'text-primary fill' : 'text-text-secondary group-hover:text-primary'}`}>

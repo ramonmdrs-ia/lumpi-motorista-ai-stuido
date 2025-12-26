@@ -40,7 +40,9 @@ const Login: React.FC = () => {
             id: authData.user.id,
             nome: profile.nome_completo || 'Motorista',
             usuario: profile.usuario,
-            email: authData.user.email
+            email: authData.user.email,
+            plano: profile.plano || 'free',
+            pro_until: profile.pro_until
           }));
           navigate('/dashboard');
         } else {
@@ -50,7 +52,9 @@ const Login: React.FC = () => {
             id: authData.user.id,
             nome: 'Motorista',
             usuario: authData.user.email?.split('@')[0] || 'User',
-            email: authData.user.email
+            email: authData.user.email,
+            plano: 'free',
+            pro_until: null
           }));
           navigate('/dashboard');
         }
