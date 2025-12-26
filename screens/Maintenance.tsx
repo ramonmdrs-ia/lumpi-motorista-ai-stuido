@@ -5,11 +5,9 @@ import { supabase, isConfigured } from '../supabaseClient';
 import { usePro } from '../hooks/usePro';
 import { ProLock } from '../components/ProComponents';
 import { UpgradeModal } from '../components/UpgradeModal';
-import { useNotification } from '../components/NotificationContext';
 
 const Maintenance: React.FC = () => {
   const navigate = useNavigate();
-  const { showNotification } = useNotification();
   const { isPro, loading: proLoading } = usePro();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -32,10 +30,7 @@ const Maintenance: React.FC = () => {
 
   const handleSaveMaintenance = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isConfigured || !userId) {
-      showNotification("Sessão expirada ou erro de configuração.", "error");
-      return;
-    }
+    if (!isConfigured || !userId) return alert("Sessão expirada ou erro de configuração.");
     if (!isPro) {
       setShowUpgrade(true);
       return;
@@ -54,10 +49,10 @@ const Maintenance: React.FC = () => {
         }]);
 
       if (error) throw error;
-      showNotification("Manutenção registrada com segurança!", "success");
+      alert("Manutenção registrada com segurança!");
       setFormData({ ...formData, amount: '' });
     } catch (err: any) {
-      showNotification("Erro ao salvar: " + err.message, "error");
+      alert("Erro ao salvar: " + err.message);
     } finally {
       setLoading(false);
     }

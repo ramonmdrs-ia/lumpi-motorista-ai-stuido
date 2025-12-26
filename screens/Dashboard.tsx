@@ -3,11 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, isConfigured } from '../supabaseClient';
 import { Badge, MetricCard, TripListItem } from '../components/DashboardComponents';
-import { useNotification } from '../components/NotificationContext';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { showNotification } = useNotification();
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [totalKm, setTotalKm] = useState(0);
@@ -74,7 +72,6 @@ const Dashboard: React.FC = () => {
 
     } catch (e: any) {
       console.error("Falha de conexão");
-      showNotification("Falha de conexão com o banco de dados.", "error");
     }
   };
 

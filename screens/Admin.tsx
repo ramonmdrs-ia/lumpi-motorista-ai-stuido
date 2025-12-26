@@ -7,11 +7,9 @@ import { Badge } from '../components/DashboardComponents'; // Reuse Badge
 // Fix imports: AdminTab and AdminUser are exported from AdminComponents
 import type { AdminTab as AdminTabType, AdminUser as AdminUserType, UserAdminStatus, AdminInvite as AdminInviteType } from '../components/AdminComponents';
 import { InviteGenerator } from '../components/InviteGenerator';
-import { useNotification } from '../components/NotificationContext';
 
 const Admin: React.FC = () => {
     const navigate = useNavigate();
-    const { showNotification, showConfirm } = useNotification();
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<AdminTabType>('users');
     const [users, setUsers] = useState<AdminUserType[]>([]);
@@ -93,9 +91,9 @@ const Admin: React.FC = () => {
 
             // Refresh list
             await fetchUsers();
-            showNotification('Usuário atualizado com sucesso!', 'success');
+            alert('Usuário atualizado com sucesso!');
         } catch (err: any) {
-            showNotification('Erro ao atualizar usuário: ' + err.message, 'error');
+            alert('Erro ao atualizar usuário: ' + err.message);
         }
     };
 
@@ -122,26 +120,19 @@ const Admin: React.FC = () => {
     };
 
     const handleRevokeInvite = async (id: string) => {
-        showConfirm({
-            title: 'Revogar Convite',
-            message: 'Deseja revogar este convite permanentemente?',
-            confirmText: 'Revogar',
-            tone: 'danger',
-            onConfirm: async () => {
-                try {
-                    const { error } = await supabase
-                        .from('invites')
-                        .delete()
-                        .eq('id', id);
+        if (!window.confirm('Revogar este convite?')) return;
 
-                    if (error) throw error;
-                    await fetchInvites();
-                    showNotification('Convite revogado com sucesso.', 'success');
-                } catch (err: any) {
-                    showNotification('Erro ao revogar convite: ' + err.message, 'error');
-                }
-            }
-        });
+        try {
+            const { error } = await supabase
+                .from('invites')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            await fetchInvites();
+        } catch (err: any) {
+            alert('Erro ao revogar convite: ' + err.message);
+        }
     };
 
     // Filtering logic

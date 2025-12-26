@@ -2,11 +2,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase, isConfigured } from '../supabaseClient';
-import { useNotification } from '../components/NotificationContext';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
-  const { showNotification } = useNotification();
   const [showPass, setShowPass] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -139,14 +137,13 @@ const Register: React.FC = () => {
           console.error('Failed to mark invite as used:', inviteError);
         }
 
-        showNotification('Conta criada com sucesso! Verifique seu email.', 'success');
+        alert('Conta criada com sucesso! Verifique seu email se necessário.');
         navigate('/login');
       }
 
     } catch (err: any) {
       const msg = err?.message || String(err);
       setError(msg);
-      showNotification(msg, 'error');
     } finally {
       setLoading(false);
     }

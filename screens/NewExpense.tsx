@@ -2,11 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, isConfigured } from '../supabaseClient';
-import { useNotification } from '../components/NotificationContext';
 
 const NewExpense: React.FC = () => {
   const navigate = useNavigate();
-  const { showNotification } = useNotification();
   const today = new Date().toISOString().split('T')[0];
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -32,7 +30,7 @@ const NewExpense: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isConfigured || !userId) {
-      showNotification('Sessão inválida ou banco não configurado.', 'error');
+      alert('Sessão inválida ou banco não configurado.');
       return;
     }
 
@@ -51,15 +49,14 @@ const NewExpense: React.FC = () => {
         }]);
 
       if (error) {
-        showNotification('Erro ao salvar despesa: ' + error.message, 'error');
+        alert('Erro ao salvar despesa: ' + error.message);
         setLoading(false);
         return;
       }
 
-      showNotification('Despesa salva com sucesso!', 'success');
       navigate('/expenses');
     } catch (err: any) {
-      showNotification('Erro inesperado: ' + err.message, 'error');
+      alert('Erro inesperado: ' + err.message);
     } finally {
       setLoading(false);
     }

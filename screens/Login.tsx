@@ -2,11 +2,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase, isConfigured } from '../supabaseClient';
-import { useNotification } from '../components/NotificationContext';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { showNotification } = useNotification();
   const [showPass, setShowPass] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -63,7 +61,6 @@ const Login: React.FC = () => {
       }
     } catch (err: any) {
       setError(err.message || 'Falha na autenticação.');
-      showNotification(err.message || 'Falha na autenticação.', 'error');
     } finally {
       setLoading(false);
     }

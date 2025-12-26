@@ -5,11 +5,9 @@ import { supabase } from '../supabaseClient';
 import { UserHeader, SettingsSectionTitle, SettingsItem, DangerZone } from '../components/SettingsComponents';
 import { Card } from '../components/DashboardComponents';
 import { ProBadge } from '../components/ProComponents';
-import { useNotification } from '../components/NotificationContext';
 
 const Menu: React.FC = () => {
   const navigate = useNavigate();
-  const { showNotification, showConfirm } = useNotification();
   const [user, setUser] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -71,45 +69,40 @@ const Menu: React.FC = () => {
       link.href = url;
       link.download = `meus-dados-lumpi-${user.usuario || 'user'}.json`;
       link.click();
-      showNotification('Relatório de Portabilidade gerado com sucesso!', 'success');
+      alert('Relatório de Portabilidade gerado com sucesso!');
     } catch (e) {
-      showNotification('Erro ao exportar dados.', 'error');
+      alert('Erro ao exportar dados.');
     }
   };
 
   const handleDeleteAllData = async () => {
     if (!user) return;
-    showConfirm({
-      title: 'Direito ao Esquecimento',
-      message: 'Isso excluirá todos os seus dados pessoais e financeiros permanentemente. Deseja continuar?',
-      confirmText: 'Excluir Tudo',
-      tone: 'danger',
-      onConfirm: async () => {
-        setIsDeleting(true);
-        try {
-          await Promise.all([
-            supabase.from('entradas').delete().eq('user_id', user.id),
-            supabase.from('despesas').delete().eq('user_id', user.id),
-            supabase.from('metas').delete().eq('user_id', user.id),
-            supabase.from('manutencao').delete().eq('user_id', user.id),
-            supabase.from('usuarios').delete().eq('id', user.id)
-          ]);
+    const confirm = window.confirm("DIREITO AO ESQUECIMENTO: Isso excluirá todos os seus dados pessoais e financeiros permanentemente. Deseja continuar?");
+    if (!confirm) return;
 
-          localStorage.removeItem('lumpi_user');
-          showNotification('Seus dados foram excluídos com sucesso.', 'success');
-          navigate('/login');
-        } catch (e) {
-          showNotification('Erro ao processar exclusão.', 'error');
-        } finally {
-          setIsDeleting(false);
-        }
-      }
-    });
+    setIsDeleting(true);
+    try {
+      await Promise.all([
+        supabase.from('entradas').delete().eq('user_id', user.id),
+        supabase.from('despesas').delete().eq('user_id', user.id),
+        supabase.from('metas').delete().eq('user_id', user.id),
+        supabase.from('manutencao').delete().eq('user_id', user.id),
+        supabase.from('usuarios').delete().eq('id', user.id)
+      ]);
+
+      localStorage.removeItem('lumpi_user');
+      alert('Seus dados foram excluídos com sucesso.');
+      navigate('/login');
+    } catch (e) {
+      alert('Erro ao processar exclusão.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   // Helper placeholder click
   const handlePlaceholder = (feature: string) => {
-    showNotification(`Funcionalidade "${feature}" será em breve!`, 'info');
+    alert(`Funcionalidade "${feature}" será implementada em breve!`);
   };
 
   if (!user) return null;
