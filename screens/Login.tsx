@@ -15,38 +15,51 @@ const Login: React.FC = () => {
     e.preventDefault();
     setError('');
 
-    if (!isConfigured) {
-      setError('Verifique sua conexão com o banco.');
-      return;
-    }
-
     setLoading(true);
 
     try {
-      const { data, error: fetchError } = await supabase
-        .from('usuarios')
-        .select('*')
-        .eq('usuario', username.toLowerCase())
-        .single();
+      // 1. Supabase Auth Login
+      // Constructing email from username since we updated Register to do so
+      const email = `${username.toLowerCase()}@lumpi.app`;
 
-      if (fetchError) {
-        setError('Usuário não encontrado ou erro de acesso.');
-        setLoading(false);
-        return;
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password
+      });
+
+      if (authError) throw new Error('Credenciais inválidas.');
+
+      if (authData.user) {
+        // 2. Fetch Profile for "Bridge" Compatibility (local storage info used by screens)
+        const { data: profile, error: profileError } = await supabase
+          .from('usuarios')
+          .select('*')
+          .eq('id', authData.user.id)
+          .single();
+
+        if (profile) {
+          // Bridge: Save to localStorage so existing screens work without refactor
+          localStorage.setItem('lumpi_user', JSON.stringify({
+            id: authData.user.id,
+            nome: profile.nome_completo || 'Motorista',
+            usuario: profile.usuario,
+            email: authData.user.email // Add email to storage
+          }));
+          navigate('/dashboard');
+        } else {
+          // Profile missing? Should not happen if registered correctly.
+          // Fallback
+          localStorage.setItem('lumpi_user', JSON.stringify({
+            id: authData.user.id,
+            nome: 'Motorista',
+            usuario: username,
+          }));
+          navigate('/dashboard');
+        }
       }
 
-      if (data && data.senha === password) {
-        localStorage.setItem('lumpi_user', JSON.stringify({
-          id: data.id,
-          nome: String(data.nome_completo || 'Motorista'),
-          usuario: String(data.usuario)
-        }));
-        navigate('/dashboard');
-      } else {
-        setError('Senha incorreta.');
-      }
     } catch (err: any) {
-      setError('Falha na autenticação.');
+      setError(err.message || 'Falha na autenticação.');
     } finally {
       setLoading(false);
     }
@@ -70,10 +83,10 @@ const Login: React.FC = () => {
 
             <div className="flex flex-col gap-2">
               <span className="text-white text-xs font-bold uppercase tracking-widest">Usuário</span>
-              <input 
-                className="w-full rounded-2xl bg-black/20 border border-white/10 text-white p-4 outline-none focus:border-primary" 
-                placeholder="Seu login" 
-                required 
+              <input
+                className="w-full rounded-2xl bg-black/20 border border-white/10 text-white p-4 outline-none focus:border-primary"
+                placeholder="Seu login"
+                required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
@@ -81,17 +94,17 @@ const Login: React.FC = () => {
 
             <div className="flex flex-col gap-2">
               <span className="text-white text-xs font-bold uppercase tracking-widest">Senha</span>
-              <input 
-                className="w-full rounded-2xl bg-black/20 border border-white/10 text-white p-4 outline-none focus:border-primary" 
-                placeholder="••••" 
-                required 
+              <input
+                className="w-full rounded-2xl bg-black/20 border border-white/10 text-white p-4 outline-none focus:border-primary"
+                placeholder="••••"
+                required
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
 
-            <button 
+            <button
               disabled={loading}
               className="mt-4 w-full bg-primary hover:bg-primary-hover text-[#102216] font-black py-4 rounded-2xl transition-all shadow-lg"
             >

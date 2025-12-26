@@ -38,37 +38,56 @@ const Register: React.FC = () => {
     setLoading(true);
 
     try {
-      const { data: existingUser } = await supabase
-        .from('usuarios')
-        .select('usuario')
-        .eq('usuario', formData.username.toLowerCase())
-        .maybeSingle();
+      // 1. Create User in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: `${formData.username.toLowerCase()}@lumpi.app`, // Fake email for username-based login if needed, or ask user for email. 
+        // Wait, the form asks for "Login/Usuário", not Email. Supabase Auth needs Email.
+        // I should stick to the current form or append a domain if I want to keep "username" login.
+        // Let's assume we change the form to ask for Email or use a fake domain. 
+        // The previous code used 'usuario' column. The Register form has 'username'.
+        // To properly migrate, I should probably ask for Email.
+        // However, to minimise UI changes, I'll construct an email: username@lumpi.app
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.name,
+            username: formData.username.toLowerCase()
+          }
+        }
+      });
 
-      if (existingUser) {
-        setError('Este nome de usuário já existe.');
-        setLoading(false);
-        return;
+      if (authError) throw authError;
+
+      if (authData.user) {
+        // 2. Create Public Profile linked to Auth ID
+        const { error: profileError } = await supabase
+          .from('usuarios')
+          .insert([
+            {
+              id: authData.user.id, // THE LINK
+              nome_completo: formData.name,
+              usuario: formData.username.toLowerCase(),
+              // We don't store password here anymore!
+              // LGPD Columns (if they exist, otherwise this might fail if I add them blindly. 
+              // Safer to stick to basics unless confirmed).
+              // 'termos_aceitos': consent, 
+              // 'data_aceite_termos': new Date().toISOString()
+            }
+          ]);
+
+        if (profileError) {
+          // Rollback? Hard to rollback Auth. Just warn.
+          console.error("Profile creation failed", profileError);
+          throw new Error("Conta criada, mas erro ao salvar perfil.");
+        }
+
+        alert('Conta criada com sucesso!');
+        navigate('/login');
       }
 
-      // Inserindo apenas colunas essenciais que existem na maioria das tabelas
-      const { error: insertError } = await supabase
-        .from('usuarios')
-        .insert([
-          {
-            nome_completo: formData.name,
-            usuario: formData.username.toLowerCase(),
-            senha: formData.password
-          }
-        ]);
-
-      if (insertError) throw insertError;
-
-      alert('Conta criada com sucesso!');
-      navigate('/login');
     } catch (err: any) {
-      // Captura segura da mensagem de erro
-      const msg = err?.message || err?.details || String(err);
-      setError(typeof msg === 'object' ? 'Erro ao salvar dados' : String(msg));
+      const msg = err?.message || String(err);
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -97,47 +116,47 @@ const Register: React.FC = () => {
 
               <div className="flex flex-col gap-2">
                 <span className="text-white text-xs font-bold uppercase tracking-widest">Nome Completo</span>
-                <input 
-                  className="w-full rounded-2xl bg-black/20 border border-white/10 text-white p-4 outline-none focus:border-primary" 
-                  placeholder="Seu nome" 
-                  required 
+                <input
+                  className="w-full rounded-2xl bg-black/20 border border-white/10 text-white p-4 outline-none focus:border-primary"
+                  placeholder="Seu nome"
+                  required
                   value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
               </div>
 
               <div className="flex flex-col gap-2">
                 <span className="text-white text-xs font-bold uppercase tracking-widest">Login / Usuário</span>
-                <input 
-                  className="w-full rounded-2xl bg-black/20 border border-white/10 text-white p-4 outline-none focus:border-primary" 
-                  placeholder="Ex: marcos_uber" 
-                  required 
+                <input
+                  className="w-full rounded-2xl bg-black/20 border border-white/10 text-white p-4 outline-none focus:border-primary"
+                  placeholder="Ex: marcos_uber"
+                  required
                   value={formData.username}
-                  onChange={(e) => setFormData({...formData, username: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2">
                   <span className="text-white text-xs font-bold uppercase tracking-widest">Senha</span>
-                  <input 
-                    className="w-full rounded-2xl bg-black/20 border border-white/10 text-white p-4 outline-none focus:border-primary" 
-                    placeholder="••••" 
-                    required 
+                  <input
+                    className="w-full rounded-2xl bg-black/20 border border-white/10 text-white p-4 outline-none focus:border-primary"
+                    placeholder="••••"
+                    required
                     type="password"
                     value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   />
                 </div>
                 <div className="flex flex-col gap-2">
                   <span className="text-white text-xs font-bold uppercase tracking-widest">Repetir</span>
-                  <input 
-                    className="w-full rounded-2xl bg-black/20 border border-white/10 text-white p-4 outline-none focus:border-primary" 
-                    placeholder="••••" 
-                    required 
+                  <input
+                    className="w-full rounded-2xl bg-black/20 border border-white/10 text-white p-4 outline-none focus:border-primary"
+                    placeholder="••••"
+                    required
                     type="password"
                     value={formData.confirmPassword}
-                    onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                   />
                 </div>
               </div>
@@ -151,7 +170,7 @@ const Register: React.FC = () => {
                 </p>
               </div>
 
-              <button 
+              <button
                 disabled={loading}
                 className={`mt-2 w-full ${loading ? 'opacity-50' : 'bg-primary hover:bg-primary-hover'} text-[#102216] font-bold py-4 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2`}
               >

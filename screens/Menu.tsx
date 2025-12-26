@@ -9,12 +9,15 @@ const Menu: React.FC = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const userStr = localStorage.getItem('lumpi_user');
     if (userStr) {
       try {
-        setUser(JSON.parse(userStr));
+        const u = JSON.parse(userStr);
+        setUser(u);
+        checkAdminStatus(u.id);
       } catch {
         navigate('/login');
       }
@@ -23,7 +26,18 @@ const Menu: React.FC = () => {
     }
   }, [navigate]);
 
-  const handleLogout = () => {
+  const checkAdminStatus = async (userId: string) => {
+    try {
+      const { data, error } = await supabase.from('admins').select('id').eq('user_id', userId).single();
+      // If error (e.g. 406 Not Acceptable), it likely means no row found, which is fine (not admin)
+      if (data) setIsAdmin(true);
+    } catch (e) {
+      // safe to ignore, user is just not admin
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     localStorage.removeItem('lumpi_user');
     navigate('/login');
   };
@@ -100,8 +114,22 @@ const Menu: React.FC = () => {
         name={user.nome || 'Motorista'}
         email={user.email || 'usuario@lumpi.app'}
         planLabel="Plano PRO"
-        roleLabel="AdminVitalício"
+        roleLabel={isAdmin ? "Admin" : undefined}
       />
+
+      {isAdmin && (
+        <>
+          <SettingsSectionTitle label="Administrador" />
+          <Card className="!p-0 overflow-hidden flex flex-col">
+            <SettingsItem
+              title="Administração"
+              description="Gerenciar usuários e convites"
+              iconName="admin_panel_settings"
+              onClick={() => navigate('/admin')}
+            />
+          </Card>
+        </>
+      )}
 
       <SettingsSectionTitle label="Conta" />
       <Card className="!p-0 overflow-hidden flex flex-col">

@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { RequireAdmin } from './components/AuthGuard';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './screens/Dashboard';
 import Login from './screens/Login';
@@ -14,6 +15,7 @@ import Ranking from './screens/Ranking';
 import Menu from './screens/Menu';
 import Subscription from './screens/Subscription';
 import Success from './screens/Success';
+import Admin from './screens/Admin'; // Changed from Analytics to Admin? No, keep Analytics too. Add Admin.
 import Analytics from './screens/Analytics';
 import Layout from './components/Layout';
 
@@ -28,6 +30,12 @@ const App: React.FC = () => {
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/analytics" element={<Analytics />} />
+
+          {/* Admin Guard */}
+          <Route element={<RequireAdmin />}>
+            <Route path="/admin" element={<Admin />} />
+          </Route>
+
           <Route path="/trips" element={<Trips />} />
           <Route path="/trips/new" element={<NewTrip />} />
           <Route path="/trips/edit/:id" element={<NewTrip />} />
