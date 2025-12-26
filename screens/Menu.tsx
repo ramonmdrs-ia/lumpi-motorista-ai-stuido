@@ -5,12 +5,14 @@ import { supabase } from '../supabaseClient';
 import { UserHeader, SettingsSectionTitle, SettingsItem, DangerZone } from '../components/SettingsComponents';
 import { Card } from '../components/DashboardComponents';
 import { ProBadge } from '../components/ProComponents';
+import ProfileModal from '../components/ProfileModal';
 
 const Menu: React.FC = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
     const userStr = localStorage.getItem('lumpi_user');
@@ -138,7 +140,7 @@ const Menu: React.FC = () => {
           title="Meu Perfil"
           description="Nome, email e dados pessoais"
           iconName="person"
-          onClick={() => handlePlaceholder('Meu Perfil')}
+          onClick={() => setIsProfileModalOpen(true)}
         />
         <SettingsItem
           title="Meu Veículo"
@@ -233,7 +235,14 @@ const Menu: React.FC = () => {
         onDeleteAccount={handleDeleteAllData}
       />
 
-      <footer className="mt-8 text-center flex flex-col gap-1 pb-8">
+      <ProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        user={user}
+        onUpdate={(updatedUser) => setUser(updatedUser)}
+      />
+
+      <footer className="mt-8 text-center flex flex-col gap-1 pb-32">
         <p className="text-white font-bold text-sm">Controladora de Rentabilidade v1.0.0</p>
         <p className="text-text-secondary text-xs">Feito com ❤️ para motoristas</p>
       </footer>
