@@ -84,27 +84,10 @@ const Register: React.FC = () => {
       if (authError) throw authError;
 
       if (authData.user) {
-        // 2. Create Public Profile linked to Auth ID
-        const { error: profileError } = await supabase
-          .from('usuarios')
-          .insert([
-            {
-              id: authData.user.id, // THE LINK
-              nome_completo: formData.name,
-              usuario: formData.username.toLowerCase(),
-              email: formData.email,
-              telefone: formData.phone
-              // LGPD Columns handled by defaults or updated later
-            }
-          ]);
+        // SUCCESS: Profile is created automatically by Database Trigger (handle_new_user)
+        // We just notify the user.
 
-        if (profileError) {
-          // Rollback? Hard to rollback Auth. Just warn.
-          console.error("Profile creation failed", profileError);
-          throw new Error("Conta criada, mas erro ao salvar perfil.");
-        }
-
-        alert('Conta criada com sucesso!');
+        alert('Conta criada com sucesso! Verifique seu email se necessário.');
         navigate('/login');
       }
 
