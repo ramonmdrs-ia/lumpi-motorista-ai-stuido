@@ -2,9 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase, isConfigured } from '../supabaseClient';
+import { useNotification } from '../components/NotificationContext';
 
 const NewTrip: React.FC = () => {
   const navigate = useNavigate();
+  const { showNotification } = useNotification();
   const { id } = useParams();
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -59,7 +61,7 @@ const NewTrip: React.FC = () => {
       }
     } catch (error) {
       console.error(error);
-      alert('Erro ao carregar dados da viagem.');
+      showNotification('Erro ao carregar dados da viagem.', 'error');
       navigate('/trips');
     } finally {
       setLoading(false);
@@ -68,7 +70,10 @@ const NewTrip: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isConfigured || !userId) return alert('Conexão perdida.');
+    if (!isConfigured || !userId) {
+      showNotification('Conexão perdida.', 'error');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -102,9 +107,10 @@ const NewTrip: React.FC = () => {
       }
 
       if (error) throw error;
+      showNotification(id ? 'Entrada atualizada!' : 'Entrada registrada!', 'success');
       navigate('/trips');
     } catch (err: any) {
-      alert('Erro: ' + (err.message || 'Falha ao salvar.'));
+      showNotification('Erro: ' + (err.message || 'Falha ao salvar.'), 'error');
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
+import { useNotification } from './NotificationContext';
 
 interface InviteGeneratorProps {
     isOpen: boolean;
@@ -15,6 +16,7 @@ const generateCode = (): string => {
 };
 
 export const InviteGenerator: React.FC<InviteGeneratorProps> = ({ isOpen, onClose, onSuccess }) => {
+    const { showNotification } = useNotification();
     const [emailRestriction, setEmailRestriction] = useState('');
     const [generating, setGenerating] = useState(false);
     const [generatedCode, setGeneratedCode] = useState('');
@@ -39,12 +41,13 @@ export const InviteGenerator: React.FC<InviteGeneratorProps> = ({ isOpen, onClos
             if (error) throw error;
 
             setGeneratedCode(code);
+            showNotification('Convite gerado com sucesso!', 'success');
             setTimeout(() => {
                 onSuccess();
                 handleClose();
             }, 2000);
         } catch (err: any) {
-            alert('Erro ao gerar convite: ' + err.message);
+            showNotification('Erro ao gerar convite: ' + err.message, 'error');
         } finally {
             setGenerating(false);
         }

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase, isConfigured } from '../supabaseClient';
 import { usePro } from '../hooks/usePro';
 import { UpgradeModal } from '../components/UpgradeModal';
+import { useNotification } from '../components/NotificationContext';
 
 interface Entry {
   id: number;
@@ -18,6 +19,7 @@ interface Entry {
 
 const Trips: React.FC = () => {
   const navigate = useNavigate();
+  const { showNotification, showConfirm } = useNotification();
   const { isPro, loading: proLoading } = usePro();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -29,7 +31,7 @@ const Trips: React.FC = () => {
       setShowUpgrade(true);
       return;
     }
-    alert(`Exportando relatório em ${format.toUpperCase()}... (Em breve)`);
+    showNotification(`Exportando relatório em ${format.toUpperCase()}... (Em breve)`, 'info');
   };
 
   useEffect(() => {
@@ -79,21 +81,28 @@ const Trips: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm("Tem certeza que deseja excluir este registro permanentemente?")) return;
+    showConfirm({
+      title: 'Excluir Registro',
+      message: 'Tem certeza que deseja excluir este registro permanentemente?',
+      confirmText: 'Excluir',
+      tone: 'danger',
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase
+            .from('entradas')
+            .delete()
+            .eq('id', id)
+            .eq('user_id', userId);
 
-    try {
-      const { error } = await supabase
-        .from('entradas')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', userId);
-
-      if (error) throw error;
-      setEntries(entries.filter(e => e.id !== id));
-    } catch (error) {
-      console.error(error);
-      alert("Erro ao excluir registro.");
-    }
+          if (error) throw error;
+          showNotification("Registro excluído com sucesso.", "success");
+          setEntries(entries.filter(e => e.id !== id));
+        } catch (error) {
+          console.error(error);
+          showNotification("Erro ao excluir registro.", "error");
+        }
+      }
+    });
   };
 
   const formatDate = (dateStr: string) => {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card } from './DashboardComponents';
 import { Badge } from './DashboardComponents';
+import { useNotification } from './NotificationContext';
 
 // --- Types ---
 
@@ -164,6 +165,7 @@ interface ManageUserModalProps {
 }
 
 export const ManageUserModal: React.FC<ManageUserModalProps> = ({ user, isOpen, onClose, onUpdate }) => {
+    const { showConfirm, showNotification } = useNotification();
     const [daysToAdd, setDaysToAdd] = React.useState('30');
     const [isUpdating, setIsUpdating] = React.useState(false);
 
@@ -190,17 +192,25 @@ export const ManageUserModal: React.FC<ManageUserModalProps> = ({ user, isOpen, 
     };
 
     const handleRevokePro = async () => {
-        if (!window.confirm(`Remover plano PRO de ${user.name || user.email}?`)) return;
-        setIsUpdating(true);
-        try {
-            await onUpdate(user.id, {
-                plano: 'free',
-                pro_until: null
-            });
-            onClose();
-        } finally {
-            setIsUpdating(false);
-        }
+        showConfirm({
+            title: 'Remover Plano PRO',
+            message: `Tem certeza que deseja remover o plano PRO de ${user.name || user.email}?`,
+            confirmText: 'Remover',
+            tone: 'danger',
+            onConfirm: async () => {
+                setIsUpdating(true);
+                try {
+                    await onUpdate(user.id, {
+                        plano: 'free',
+                        pro_until: null
+                    });
+                    showNotification('Plano PRO removido!', 'info');
+                    onClose();
+                } finally {
+                    setIsUpdating(false);
+                }
+            }
+        });
     };
 
     return (
@@ -280,9 +290,10 @@ interface InviteRowProps {
 }
 
 export const InviteRow: React.FC<InviteRowProps> = ({ invite, onRevoke }) => {
+    const { showNotification, showConfirm } = useNotification();
     const copyCode = () => {
         navigator.clipboard.writeText(invite.code);
-        alert('Código copiado!');
+        showNotification('Código copiado!', 'success', 2000);
     };
 
     return (
