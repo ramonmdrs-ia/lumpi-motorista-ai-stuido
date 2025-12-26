@@ -12,10 +12,13 @@ const Register: React.FC = () => {
     email: '',
     phone: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    inviteCode: ''
   });
   const [consent, setConsent] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState('');
+  const [inviteCodeValid, setInviteCodeValid] = useState<boolean | null>(null);
+  const [validatingCode, setValidatingCode] = useState(false);
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
@@ -39,6 +42,38 @@ const Register: React.FC = () => {
     if (val.length > 10) val = `${val.slice(0, 10)}-${val.slice(10)}`;
 
     setFormData(prev => ({ ...prev, phone: val }));
+  };
+
+  const validateInviteCode = async (code: string) => {
+    if (!code || code.length < 4) {
+      setInviteCodeValid(null);
+      return;
+    }
+
+    setValidatingCode(true);
+    try {
+      const { data, error } = await supabase
+        .from('invites')
+        .select('id, used, email_restriction')
+        .eq('code', code.toUpperCase())
+        .eq('used', false)
+        .single();
+
+      if (error || !data) {
+        setInviteCodeValid(false);
+      } else {
+        // Check email restriction if exists
+        if (data.email_restriction && formData.email !== data.email_restriction) {
+          setInviteCodeValid(false);
+        } else {
+          setInviteCodeValid(true);
+        }
+      }
+    } catch (err) {
+      setInviteCodeValid(false);
+    } finally {
+      setValidatingCode(false);
+    }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -65,12 +100,17 @@ const Register: React.FC = () => {
       return;
     }
 
+    if (!formData.inviteCode || inviteCodeValid !== true) {
+      setError('Código de convite inválido ou não verificado.');
+      return;
+    }
+
     setLoading(true);
 
     try {
       // 1. Create User in Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email, // Use REAL email now
+        email: formData.email,
         password: formData.password,
         options: {
           data: {
@@ -84,8 +124,18 @@ const Register: React.FC = () => {
       if (authError) throw authError;
 
       if (authData.user) {
-        // SUCCESS: Profile is created automatically by Database Trigger (handle_new_user)
-        // We just notify the user.
+        // 2. Mark invite code as used
+        const { error: inviteError } = await supabase
+          .from('invites')
+          .update({
+            used: true,
+            used_by: authData.user.id
+          })
+          .eq('code', formData.inviteCode.toUpperCase());
+
+        if (inviteError) {
+          console.error('Failed to mark invite as used:', inviteError);
+        }
 
         alert('Conta criada com sucesso! Verifique seu email se necessário.');
         navigate('/login');
@@ -166,6 +216,40 @@ const Register: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
               </div>
+
+              {/* Invite Code Field */}
+              <div className="flex flex-col gap-2">
+                <span className="text-white text-xs font-bold uppercase tracking-widest">Código de Convite</span>
+                <div className="relative">
+                  <input
+                    className={`w-full rounded-2xl bg-black/20 border ${inviteCodeValid === true ? 'border-primary' :
+                        inviteCodeValid === false ? 'border-red-500' :
+                          'border-white/10'
+                      } text-white p-4 pr-12 outline-none focus:border-primary uppercase`}
+                    placeholder="XXXX-XXXX"
+                    required
+                    value={formData.inviteCode}
+                    onChange={(e) => {
+                      const val = e.target.value.toUpperCase();
+                      setFormData({ ...formData, inviteCode: val });
+                      validateInviteCode(val);
+                    }}
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                    {validatingCode ? (
+                      <span className="material-symbols-outlined text-text-secondary animate-spin">progress_activity</span>
+                    ) : inviteCodeValid === true ? (
+                      <span className="material-symbols-outlined text-primary">check_circle</span>
+                    ) : inviteCodeValid === false ? (
+                      <span className="material-symbols-outlined text-red-500">cancel</span>
+                    ) : null}
+                  </div>
+                </div>
+                {inviteCodeValid === false && (
+                  <span className="text-red-500 text-xs font-medium">Código inválido ou já utilizado</span>
+                )}
+              </div>
+
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2 relative group">

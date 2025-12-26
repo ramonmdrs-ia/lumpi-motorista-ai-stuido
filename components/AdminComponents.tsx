@@ -262,3 +262,60 @@ export const ManageUserModal: React.FC<ManageUserModalProps> = ({ user, isOpen, 
         </div>
     );
 };
+
+// --- Invite Management ---
+
+export type AdminInvite = {
+    id: string;
+    code: string;
+    used: boolean;
+    used_by?: string;
+    email_restriction?: string;
+    created_at: string;
+};
+
+interface InviteRowProps {
+    invite: AdminInvite;
+    onRevoke?: (id: string) => void;
+}
+
+export const InviteRow: React.FC<InviteRowProps> = ({ invite, onRevoke }) => {
+    const copyCode = () => {
+        navigator.clipboard.writeText(invite.code);
+        alert('Código copiado!');
+    };
+
+    return (
+        <div className="flex items-center justify-between p-4 bg-[#1c1c1c] border-b border-white/5 last:border-none hover:bg-white/5 transition-colors">
+            <div className="flex flex-col gap-1 flex-1">
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={copyCode}
+                        className="font-mono text-lg font-black text-primary hover:text-primary-hover flex items-center gap-2 group"
+                    >
+                        {invite.code}
+                        <span className="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100 transition-opacity">content_copy</span>
+                    </button>
+                    <Badge variant={invite.used ? 'default' : 'success'}>
+                        {invite.used ? 'Usado' : 'Disponível'}
+                    </Badge>
+                </div>
+                {invite.email_restriction && (
+                    <p className="text-xs text-text-secondary">Restrito a: {invite.email_restriction}</p>
+                )}
+                <span className="text-[10px] text-text-secondary/60">
+                    Criado em {new Date(invite.created_at).toLocaleDateString('pt-BR')}
+                </span>
+            </div>
+
+            {!invite.used && onRevoke && (
+                <button
+                    onClick={() => onRevoke(invite.id)}
+                    className="size-8 rounded-lg flex items-center justify-center text-red-500 hover:bg-red-500/10 transition-colors"
+                >
+                    <span className="material-symbols-outlined text-sm">delete</span>
+                </button>
+            )}
+        </div>
+    );
+};

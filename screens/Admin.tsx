@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { AdminTabs, StatCard, FilterBar, UserRow, AdminTab, AdminUser, ManageUserModal } from '../components/AdminComponents'; // Import types directly? or from file? Adjust imports.
+import { AdminTabs, StatCard, FilterBar, UserRow, AdminTab, AdminUser, ManageUserModal, InviteRow, AdminInvite } from '../components/AdminComponents';
 import { Badge } from '../components/DashboardComponents'; // Reuse Badge
 
 // Fix imports: AdminTab and AdminUser are exported from AdminComponents
-import type { AdminTab as AdminTabType, AdminUser as AdminUserType, UserAdminStatus } from '../components/AdminComponents';
+import type { AdminTab as AdminTabType, AdminUser as AdminUserType, UserAdminStatus, AdminInvite as AdminInviteType } from '../components/AdminComponents';
+import { InviteGenerator } from '../components/InviteGenerator';
 
 const Admin: React.FC = () => {
     const navigate = useNavigate();
@@ -21,6 +22,10 @@ const Admin: React.FC = () => {
     const [isManageModalOpen, setIsManageModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<AdminUserType | null>(null);
 
+    // Invites
+    const [invites, setInvites] = useState<AdminInviteType[]>([]);
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+
     useEffect(() => {
         const checkAdmin = () => {
             const userStr = localStorage.getItem('lumpi_user');
@@ -28,7 +33,8 @@ const Admin: React.FC = () => {
             fetchUsers();
         };
         checkAdmin();
-    }, [navigate]);
+        if (activeTab === 'invites') fetchInvites();
+    }, [navigate, activeTab]);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -99,6 +105,36 @@ const Admin: React.FC = () => {
         }
     };
 
+    const fetchInvites = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('invites')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            if (data) setInvites(data);
+        } catch (err) {
+            console.error('Error fetching invites:', err);
+        }
+    };
+
+    const handleRevokeInvite = async (id: string) => {
+        if (!window.confirm('Revogar este convite?')) return;
+
+        try {
+            const { error } = await supabase
+                .from('invites')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            await fetchInvites();
+        } catch (err: any) {
+            alert('Erro ao revogar convite: ' + err.message);
+        }
+    };
+
     // Filtering logic
     const filteredUsers = users.filter(user => {
         const matchesSearch = (user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -130,29 +166,54 @@ const Admin: React.FC = () => {
             </div>
 
             {/* Filters & List */}
-            <div className="flex flex-col gap-4 bg-[#111813] rounded-3xl p-1 border border-white/5">
-                <div className="p-4">
-                    <FilterBar
-                        onRefresh={fetchUsers}
-                        searchTerm={searchTerm}
-                        onSearchChange={setSearchTerm}
-                        statusFilter={statusFilter}
-                        onStatusFilterChange={setStatusFilter}
-                    />
-                </div>
+            {activeTab === 'invites' ? (
+                <div className="flex flex-col gap-4 bg-[#111813] rounded-3xl p-1 border border-white/5">
+                    <div className="p-4 flex justify-between items-center">
+                        <h2 className="text-white font-bold">Códigos de Convite</h2>
+                        <button
+                            onClick={() => setIsInviteModalOpen(true)}
+                            className="bg-primary hover:bg-primary-hover text-[#102216] font-bold px-4 py-2 rounded-xl transition-all flex items-center gap-2"
+                        >
+                            <span className="material-symbols-outlined">add</span>
+                            Gerar Convite
+                        </button>
+                    </div>
 
-                <div className="flex flex-col">
-                    {loading ? (
-                        <div className="p-8 text-center text-text-secondary">Carregando usuários...</div>
-                    ) : filteredUsers.length === 0 ? (
-                        <div className="p-8 text-center text-text-secondary">Nenhum usuário encontrado.</div>
-                    ) : (
-                        filteredUsers.map(user => (
-                            <UserRow key={user.id} user={user} onManage={() => handleManageUser(user.id)} />
-                        ))
-                    )}
+                    <div className="flex flex-col">
+                        {invites.length === 0 ? (
+                            <div className="p-8 text-center text-text-secondary">Nenhum convite criado ainda.</div>
+                        ) : (
+                            invites.map(invite => (
+                                <InviteRow key={invite.id} invite={invite} onRevoke={handleRevokeInvite} />
+                            ))
+                        )}
+                    </div>
                 </div>
-            </div>
+            ) : (
+                <div className="flex flex-col gap-4 bg-[#111813] rounded-3xl p-1 border border-white/5">
+                    <div className="p-4">
+                        <FilterBar
+                            onRefresh={fetchUsers}
+                            searchTerm={searchTerm}
+                            onSearchChange={setSearchTerm}
+                            statusFilter={statusFilter}
+                            onStatusFilterChange={setStatusFilter}
+                        />
+                    </div>
+
+                    <div className="flex flex-col">
+                        {loading ? (
+                            <div className="p-8 text-center text-text-secondary">Carregando usuários...</div>
+                        ) : filteredUsers.length === 0 ? (
+                            <div className="p-8 text-center text-text-secondary">Nenhum usuário encontrado.</div>
+                        ) : (
+                            filteredUsers.map(user => (
+                                <UserRow key={user.id} user={user} onManage={() => handleManageUser(user.id)} />
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Management Modal */}
             <ManageUserModal
@@ -160,6 +221,13 @@ const Admin: React.FC = () => {
                 user={selectedUser}
                 onClose={() => setIsManageModalOpen(false)}
                 onUpdate={handleUpdatePlan}
+            />
+
+            {/* Invite Generator Modal */}
+            <InviteGenerator
+                isOpen={isInviteModalOpen}
+                onClose={() => setIsInviteModalOpen(false)}
+                onSuccess={fetchInvites}
             />
         </div>
     );
