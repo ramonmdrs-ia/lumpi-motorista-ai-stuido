@@ -44,13 +44,13 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onUp
                 throw uploadError;
             }
 
-            const { data: { publicUrl } } = supabase.storage
+            const { data } = supabase.storage
                 .from('profiles')
                 .getPublicUrl(filePath);
 
-            setAvatarUrl(publicUrl);
+            setAvatarUrl(data.publicUrl);
         } catch (error: any) {
-            alert(error.message);
+            alert('Erro no upload: ' + (error.message || 'Erro desconhecido'));
         } finally {
             setUploading(false);
         }
@@ -59,24 +59,26 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onUp
     const handleSave = async () => {
         try {
             setSaving(true);
+
             const updates = {
-                id: user.id,
-                nome,
-                telefone,
+                nome_completo: nome,
+                telefone: telefone,
                 avatar_url: avatarUrl,
-                updated_at: new Date(),
+                updated_at: new Date().toISOString(),
             };
 
-            const { error } = await supabase.from('usuarios').upsert(updates);
+            const { error } = await supabase.from('usuarios').update(updates).eq('id', user.id);
 
-            if (error) throw error;
+            if (error) {
+                throw error;
+            }
 
-            const updatedUser = { ...user, ...updates };
+            const updatedUser = { ...user, nome: nome, telefone: telefone, avatar_url: avatarUrl };
             localStorage.setItem('lumpi_user', JSON.stringify(updatedUser));
             onUpdate(updatedUser);
             onClose();
         } catch (error: any) {
-            alert(error.message);
+            alert('Erro ao salvar: ' + (error.message || 'Erro desconhecido'));
         } finally {
             setSaving(false);
         }
