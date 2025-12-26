@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { AdminTabs, StatCard, FilterBar, UserRow, AdminTab, AdminUser } from '../components/AdminComponents'; // Import types directly? or from file? Adjust imports.
+import { AdminTabs, StatCard, FilterBar, UserRow, AdminTab, AdminUser, ManageUserModal } from '../components/AdminComponents'; // Import types directly? or from file? Adjust imports.
 import { Badge } from '../components/DashboardComponents'; // Reuse Badge
 
 // Fix imports: AdminTab and AdminUser are exported from AdminComponents
-import type { AdminTab as AdminTabType, AdminUser as AdminUserType } from '../components/AdminComponents';
+import type { AdminTab as AdminTabType, AdminUser as AdminUserType, UserAdminStatus } from '../components/AdminComponents';
 
 const Admin: React.FC = () => {
     const navigate = useNavigate();
@@ -18,13 +18,13 @@ const Admin: React.FC = () => {
     // Stats
     const [stats, setStats] = useState({ total: 0, admin: 0, pro: 0, blocked: 0 });
 
+    const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState<AdminUserType | null>(null);
+
     useEffect(() => {
         const checkAdmin = () => {
             const userStr = localStorage.getItem('lumpi_user');
             if (!userStr) return navigate('/login');
-            // Logic to check if user is admin would go here. 
-            // For now we assume access if they reached here via "Admin" menu which we'll conditionally show? 
-            // Or we just fetch data and if it fails (Row Level Security), we show error.
             fetchUsers();
         };
         checkAdmin();
@@ -33,41 +33,32 @@ const Admin: React.FC = () => {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            // Fetch all users. Note: This requires RLS allowing 'select' on 'usuarios' for this user.
-            // If it fails with 403, we know RLS is working and blocking non-admins.
             const { data, error } = await supabase
                 .from('usuarios')
-                .select('*')
+                .select('id, email, nome_completo, usuario, created_at, plano, pro_until')
                 .order('created_at', { ascending: false });
 
             if (error) {
                 console.error('Erro ao buscar usuários:', error);
-                // alert('Acesso negado ou erro ao buscar dados.'); 
-                // Don't alert immediately, user might just be testing RLS.
             }
 
             if (data) {
-                // Map to AdminUser interface
                 const mappedUsers: AdminUserType[] = data.map((u: any) => {
-                    // Determine status logic (placeholder logic based on mock data fields if they differ)
-                    let status: any = 'free';
-                    if (u.role === 'admin') status = 'admin';
-                    else if (u.is_pro || (u.plano && u.plano !== 'free')) status = 'pro';
+                    let status: any = u.plano || 'free';
 
                     return {
                         id: u.id,
                         email: u.email,
-                        name: u.nome,
+                        name: u.nome_completo,
                         status: status,
                         signupDate: u.created_at || new Date().toISOString(),
-                        lastAccessRelative: 'Desconhecido', // Need a 'last_sign_in_at' or similar from auth or tracker
-                        proUntil: u.pro_until // Assuming column exists or null
+                        lastAccessRelative: 'Desconhecido',
+                        proUntil: u.pro_until
                     };
                 });
 
                 setUsers(mappedUsers);
 
-                // Calculate Stats
                 setStats({
                     total: mappedUsers.length,
                     admin: mappedUsers.filter(u => u.status === 'admin').length,
@@ -83,31 +74,44 @@ const Admin: React.FC = () => {
         }
     };
 
-    // Filtering
+    const handleUpdatePlan = async (userId: string, updates: { plano: UserAdminStatus, pro_until?: string | null }) => {
+        try {
+            const { error } = await supabase
+                .from('usuarios')
+                .update(updates)
+                .eq('id', userId);
+
+            if (error) throw error;
+
+            // Refresh list
+            await fetchUsers();
+            alert('Usuário atualizado com sucesso!');
+        } catch (err: any) {
+            alert('Erro ao atualizar usuário: ' + err.message);
+        }
+    };
+
+    const handleManageUser = (userId: string) => {
+        const user = users.find(u => u.id === userId);
+        if (user) {
+            setSelectedUser(user);
+            setIsManageModalOpen(true);
+        }
+    };
+
+    // Filtering logic
     const filteredUsers = users.filter(user => {
         const matchesSearch = (user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.email.toLowerCase().includes(searchTerm.toLowerCase()));
 
         const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
 
-        // Simplify tab filtering: 'users' shows all? 'pro' shows only pro?
-        // Design says: Tabs at top "Usuarios · PRO · ...". 
-        // If tab is PRO, implies filtering by PRO.
-        // Let's make Tabs act as a pre-filter or different view mode.
-        // For now, let's say 'PRO' tab acts like statusFilter='pro'.
-
         const matchesTab = activeTab === 'users' ? true :
             activeTab === 'pro' ? user.status === 'pro' :
-                true; // Invites/Logs unimplemented
+                true;
 
         return matchesSearch && matchesStatus && matchesTab;
     });
-
-    const handleManageUser = (id: string) => {
-        // Placeholder for managing user
-        const u = users.find(u => u.id === id);
-        if (u) alert(`Gerenciar usuário: ${u.email}\nID: ${u.id}`);
-    };
 
     return (
         <div className="p-4 md:p-10 max-w-6xl mx-auto flex flex-col gap-8 pb-32">
@@ -144,11 +148,19 @@ const Admin: React.FC = () => {
                         <div className="p-8 text-center text-text-secondary">Nenhum usuário encontrado.</div>
                     ) : (
                         filteredUsers.map(user => (
-                            <UserRow key={user.id} user={user} onManage={handleManageUser} />
+                            <UserRow key={user.id} user={user} onManage={() => handleManageUser(user.id)} />
                         ))
                     )}
                 </div>
             </div>
+
+            {/* Management Modal */}
+            <ManageUserModal
+                isOpen={isManageModalOpen}
+                user={selectedUser}
+                onClose={() => setIsManageModalOpen(false)}
+                onUpdate={handleUpdatePlan}
+            />
         </div>
     );
 };

@@ -40,8 +40,8 @@ export const AdminTabs: React.FC<AdminTabsProps> = ({ active, onChange }) => {
                     key={tab.id}
                     onClick={() => onChange(tab.id)}
                     className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${active === tab.id
-                            ? 'bg-primary text-[#102216] shadow-sm'
-                            : 'text-text-secondary hover:text-white hover:bg-white/5'
+                        ? 'bg-primary text-[#102216] shadow-sm'
+                        : 'text-text-secondary hover:text-white hover:bg-white/5'
                         }`}
                 >
                     {tab.label}
@@ -152,6 +152,113 @@ export const UserRow: React.FC<UserRowProps> = ({ user, onManage }) => {
             >
                 <span className="material-symbols-outlined">more_vert</span>
             </button>
+        </div>
+    );
+};
+
+interface ManageUserModalProps {
+    user: AdminUser | null;
+    isOpen: boolean;
+    onClose: () => void;
+    onUpdate: (userId: string, updates: { plano: UserAdminStatus, pro_until?: string | null }) => Promise<void>;
+}
+
+export const ManageUserModal: React.FC<ManageUserModalProps> = ({ user, isOpen, onClose, onUpdate }) => {
+    const [daysToAdd, setDaysToAdd] = React.useState('30');
+    const [isUpdating, setIsUpdating] = React.useState(false);
+
+    if (!isOpen || !user) return null;
+
+    const handleAddPro = async () => {
+        setIsUpdating(true);
+        try {
+            const now = new Date();
+            const currentUntil = user.proUntil ? new Date(user.proUntil) : now;
+            const startDate = currentUntil > now ? currentUntil : now;
+
+            const newUntil = new Date(startDate);
+            newUntil.setDate(newUntil.getDate() + parseInt(daysToAdd));
+
+            await onUpdate(user.id, {
+                plano: 'pro',
+                pro_until: newUntil.toISOString()
+            });
+            onClose();
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    const handleRevokePro = async () => {
+        if (!window.confirm(`Remover plano PRO de ${user.name || user.email}?`)) return;
+        setIsUpdating(true);
+        try {
+            await onUpdate(user.id, {
+                plano: 'free',
+                pro_until: null
+            });
+            onClose();
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-surface-dark w-full max-w-md rounded-3xl border border-white/10 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="p-6 border-b border-white/5 flex justify-between items-center">
+                    <div>
+                        <h2 className="text-white font-bold text-lg">Gerenciar Usuário</h2>
+                        <p className="text-text-secondary text-xs">{user.email}</p>
+                    </div>
+                    <button onClick={onClose} className="text-text-secondary hover:text-white">
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <div className="p-6 flex flex-col gap-6">
+                    {/* Status Atual */}
+                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl">
+                        <span className="text-text-secondary text-sm font-medium">Plano Atual</span>
+                        <Badge variant={user.status === 'pro' ? 'success' : user.status === 'admin' ? 'warning' : 'default'}>
+                            {user.status.toUpperCase()}
+                        </Badge>
+                    </div>
+
+                    {/* Adicionar Dias */}
+                    <div className="flex flex-col gap-3">
+                        <span className="text-white text-xs font-bold uppercase tracking-widest px-1">Conceder Acesso PRO</span>
+                        <div className="flex gap-2">
+                            <input
+                                type="number"
+                                value={daysToAdd}
+                                onChange={(e) => setDaysToAdd(e.target.value)}
+                                className="flex-1 bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary"
+                                placeholder="Dias"
+                            />
+                            <button
+                                onClick={handleAddPro}
+                                disabled={isUpdating}
+                                className="bg-primary hover:bg-primary-hover text-[#102216] font-bold px-6 rounded-xl transition-all disabled:opacity-50"
+                            >
+                                {isUpdating ? '...' : 'Adicionar'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Ações Rápidas */}
+                    {user.status === 'pro' && (
+                        <button
+                            onClick={handleRevokePro}
+                            disabled={isUpdating}
+                            className="w-full border border-red-500/30 text-red-500 hover:bg-red-500/10 font-bold py-3 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                            <span className="material-symbols-outlined text-sm">no_accounts</span>
+                            Revogar Plano PRO
+                        </button>
+                    )}
+                </div>
+            </div>
         </div>
     );
 };
