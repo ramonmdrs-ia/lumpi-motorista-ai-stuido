@@ -14,6 +14,7 @@ import Ranking from './screens/Ranking';
 import Menu from './screens/Menu';
 import Subscription from './screens/Subscription';
 import Success from './screens/Success';
+import Analytics from './screens/Analytics';
 import Layout from './components/Layout';
 
 const App: React.FC = () => {
@@ -26,6 +27,7 @@ const App: React.FC = () => {
         {/* Protected Routes Wrapper */}
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/analytics" element={<Analytics />} />
           <Route path="/trips" element={<Trips />} />
           <Route path="/trips/new" element={<NewTrip />} />
           <Route path="/trips/edit/:id" element={<NewTrip />} />

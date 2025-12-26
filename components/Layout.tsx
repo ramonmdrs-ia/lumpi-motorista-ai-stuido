@@ -26,7 +26,7 @@ const Layout: React.FC = () => {
     { path: '/dashboard', label: 'Início', icon: 'home' },
     { path: '/trips', label: 'Entradas', icon: 'directions_car' },
     { path: '/expenses', label: 'Saídas', icon: 'account_balance_wallet' },
-    { path: '/ranking', label: 'Análises', icon: 'bar_chart' },
+    { path: '/analytics', label: 'Análises', icon: 'bar_chart' },
     { path: '/menu', label: 'Config', icon: 'settings' },
   ];
 
@@ -44,7 +44,7 @@ const Layout: React.FC = () => {
       <aside className="hidden md:flex w-72 flex-col justify-between border-r border-[#28392e] bg-[#111813] p-6 shrink-0 h-full overflow-y-auto">
         <div className="flex flex-col gap-8">
           <div className="flex items-center gap-3">
-            <div 
+            <div
               className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-12 ring-2 ring-primary/20 flex items-center justify-center bg-primary/10 text-primary"
             >
               <span className="material-symbols-outlined">person</span>
@@ -61,11 +61,10 @@ const Layout: React.FC = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors group ${
-                  isActive(item.path) 
-                    ? 'bg-primary/10 ring-1 ring-primary/20' 
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors group ${isActive(item.path)
+                    ? 'bg-primary/10 ring-1 ring-primary/20'
                     : 'hover:bg-[#1c2e24]'
-                }`}
+                  }`}
               >
                 <span className={`material-symbols-outlined ${isActive(item.path) ? 'text-primary fill' : 'text-text-secondary group-hover:text-primary'}`}>
                   {item.icon}
@@ -78,7 +77,7 @@ const Layout: React.FC = () => {
           </nav>
         </div>
         <div className="flex flex-col gap-4">
-          <button 
+          <button
             onClick={handleLogout}
             className="flex w-full cursor-pointer items-center gap-2 justify-center rounded-xl h-12 px-4 border border-[#2f4236] hover:bg-[#253b30] text-white text-sm font-bold transition-all"
           >
