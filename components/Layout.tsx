@@ -44,7 +44,8 @@ const Layout: React.FC = () => {
             ...currentUser,
             nome: profile.nome_completo || currentUser.nome,
             plano: profile.plano || 'free',
-            pro_until: profile.pro_until
+            pro_until: profile.pro_until,
+            avatar_url: profile.avatar_url || currentUser.avatar_url
           };
           localStorage.setItem('lumpi_user', JSON.stringify(updatedUser));
           setUser(updatedUser);
@@ -65,7 +66,8 @@ const Layout: React.FC = () => {
     { path: '/menu', label: 'Config', icon: 'settings' },
   ];
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     localStorage.removeItem('lumpi_user');
     navigate('/login');
   };

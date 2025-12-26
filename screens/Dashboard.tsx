@@ -14,21 +14,63 @@ const Dashboard: React.FC = () => {
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    const userStr = localStorage.getItem('lumpi_user');
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        if (user) {
-          const rawName = user.nome || 'Motorista';
-          setUserName(typeof rawName === 'string' ? rawName.split(' ')[0] : 'Motorista');
-          setUserId(user.id ? String(user.id) : null);
+    const checkUser = async () => {
+      // 1. Check local storage first (sync)
+      const userStr = localStorage.getItem('lumpi_user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          if (user) {
+            const rawName = user.nome || 'Motorista';
+            setUserName(typeof rawName === 'string' ? rawName.split(' ')[0] : 'Motorista');
+            setUserId(user.id ? String(user.id) : null);
+            return;
+          }
+        } catch (e) {
+          console.error("Erro ao ler usuário do localStorage");
         }
-      } catch (e) {
+      }
+
+      // 2. If no local user, check Supabase session (for OAuth/Google)
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session?.user) {
+        // Fetch Profile
+        const { data: profile } = await supabase
+          .from('usuarios')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        const userData = {
+          id: session.user.id,
+          nome: profile?.nome_completo || session.user.user_metadata?.full_name || 'Motorista',
+          usuario: profile?.usuario || session.user.email?.split('@')[0] || 'User',
+          email: session.user.email,
+          plano: profile?.plano || 'free',
+          pro_until: profile?.pro_until,
+          avatar_url: profile?.avatar_url || session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture
+        };
+
+        localStorage.setItem('lumpi_user', JSON.stringify(userData));
+        setUserName(userData.nome.split(' ')[0]);
+        setUserId(userData.id);
+      } else {
         navigate('/login');
       }
-    } else {
-      navigate('/login');
-    }
+    };
+
+    checkUser();
+
+    // Listen for auth changes (optional but good for robustness)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        localStorage.removeItem('lumpi_user');
+        navigate('/login');
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   useEffect(() => {

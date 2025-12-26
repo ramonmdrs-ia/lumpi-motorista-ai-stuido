@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase, isConfigured } from '../supabaseClient';
+import GoogleButton from '../components/GoogleButton';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -66,6 +67,32 @@ const Login: React.FC = () => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    console.log('Iniciando login com Google...');
+    setError('');
+    setLoading(true);
+    try {
+      const redirectUrl = `${window.location.origin}${window.location.pathname}#/dashboard`.replace(/\/+$/, '');
+      console.log('Redirecting to:', redirectUrl);
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl
+        }
+      });
+
+      if (error) throw error;
+
+      // Segurança: Se não redirecionar em 10s, destrava o botão
+      setTimeout(() => setLoading(false), 10000);
+    } catch (err: any) {
+      console.error('Erro no login Google:', err);
+      setError(err.message || 'Erro ao conectar com Google.');
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="bg-background-dark min-h-screen flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-[440px]">
@@ -75,44 +102,54 @@ const Login: React.FC = () => {
         </div>
 
         <div className="bg-surface-dark border border-white/5 rounded-3xl shadow-2xl p-8">
-          <form onSubmit={handleLogin} className="flex flex-col gap-5">
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/30 text-red-500 p-4 rounded-2xl text-xs font-bold text-center">
-                {String(error)}
+          <div className="flex flex-col gap-6">
+            <GoogleButton onClick={handleGoogleLogin} loading={loading} />
+
+            <div className="flex items-center gap-4">
+              <div className="h-px bg-white/5 flex-1" />
+              <span className="text-[10px] text-text-secondary font-bold uppercase tracking-widest">ou entrar com e-mail</span>
+              <div className="h-px bg-white/5 flex-1" />
+            </div>
+
+            <form onSubmit={handleLogin} className="flex flex-col gap-5">
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/30 text-red-500 p-4 rounded-2xl text-xs font-bold text-center">
+                  {String(error)}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2">
+                <span className="text-white text-xs font-bold uppercase tracking-widest">E-mail</span>
+                <input
+                  className="w-full rounded-2xl bg-black/20 border border-white/10 text-white p-4 outline-none focus:border-primary"
+                  placeholder="seu@email.com"
+                  required
+                  type="email"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
               </div>
-            )}
 
-            <div className="flex flex-col gap-2">
-              <span className="text-white text-xs font-bold uppercase tracking-widest">E-mail</span>
-              <input
-                className="w-full rounded-2xl bg-black/20 border border-white/10 text-white p-4 outline-none focus:border-primary"
-                placeholder="seu@email.com"
-                required
-                type="email"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-            </div>
+              <div className="flex flex-col gap-2">
+                <span className="text-white text-xs font-bold uppercase tracking-widest">Senha</span>
+                <input
+                  className="w-full rounded-2xl bg-black/20 border border-white/10 text-white p-4 outline-none focus:border-primary"
+                  placeholder="••••"
+                  required
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
 
-            <div className="flex flex-col gap-2">
-              <span className="text-white text-xs font-bold uppercase tracking-widest">Senha</span>
-              <input
-                className="w-full rounded-2xl bg-black/20 border border-white/10 text-white p-4 outline-none focus:border-primary"
-                placeholder="••••"
-                required
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-
-            <button
-              disabled={loading}
-              className="mt-4 w-full bg-primary hover:bg-primary-hover text-[#102216] font-black py-4 rounded-2xl transition-all shadow-lg"
-            >
-              {loading ? 'Entrando...' : 'Entrar'}
-            </button>
-          </form>
+              <button
+                disabled={loading}
+                className="mt-4 w-full bg-primary hover:bg-primary-hover text-[#102216] font-black py-4 rounded-2xl transition-all shadow-lg disabled:opacity-50"
+              >
+                {loading ? 'Entrando...' : 'Entrar'}
+              </button>
+            </form>
+          </div>
 
           <div className="mt-8 text-center text-sm">
             <span className="text-text-secondary mr-2">Não tem conta?</span>
