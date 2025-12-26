@@ -6,6 +6,7 @@ import { supabase, isConfigured } from '../supabaseClient';
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [totalRevenue, setTotalRevenue] = useState(0);
+  const [totalExpenses, setTotalExpenses] = useState(0);
   const [recentEntries, setRecentEntries] = useState<any[]>([]);
   const [userName, setUserName] = useState<string>('Motorista');
   const [userId, setUserId] = useState<string | null>(null);
@@ -37,19 +38,34 @@ const Dashboard: React.FC = () => {
 
   const fetchStats = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch Entradas
+      const { data: entriesData, error: entriesError } = await supabase
         .from('entradas')
         .select('*')
         .eq('user_id', userId)
         .order('date', { ascending: false });
 
-      if (error) {
-        console.error('Erro:', error.message);
-      } else if (data) {
-        const total = data.reduce((acc: number, curr: any) => acc + (Number(curr.amount) || 0), 0);
+      if (entriesError) {
+        console.error('Erro Entradas:', entriesError.message);
+      } else if (entriesData) {
+        const total = entriesData.reduce((acc: number, curr: any) => acc + (Number(curr.amount) || 0), 0);
         setTotalRevenue(total);
-        setRecentEntries(data.slice(0, 5));
+        setRecentEntries(entriesData.slice(0, 5));
       }
+
+      // Fetch Despesas
+      const { data: expensesData, error: expensesError } = await supabase
+        .from('despesas')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (expensesError) {
+        console.error('Erro Despesas:', expensesError.message);
+      } else if (expensesData) {
+        const totalExp = expensesData.reduce((acc: number, curr: any) => acc + (Number(curr.amount) || 0), 0);
+        setTotalExpenses(totalExp);
+      }
+
     } catch (e: any) {
       console.error("Falha de conexão");
     }
@@ -81,7 +97,7 @@ const Dashboard: React.FC = () => {
           </h1>
           <p className="text-text-secondary text-sm md:text-base">Bem-vindo ao seu painel financeiro.</p>
         </div>
-        <button 
+        <button
           onClick={() => navigate('/trips/new')}
           className="flex items-center justify-center gap-2 rounded-2xl h-14 px-8 bg-primary text-[#102216] text-sm font-black shadow-lg transition-all"
         >
@@ -97,11 +113,11 @@ const Dashboard: React.FC = () => {
         </div>
         <div className="bg-surface-dark p-6 rounded-3xl border border-white/5">
           <p className="text-text-secondary text-xs font-bold uppercase tracking-wider">Gastos</p>
-          <p className="text-white text-3xl font-bold tracking-tight mt-1">R$ 0,00</p>
+          <p className="text-red-400 text-3xl font-bold tracking-tight mt-1">R$ {totalExpenses.toFixed(2)}</p>
         </div>
         <div className="bg-primary p-6 rounded-3xl shadow-xl">
           <p className="text-[#102216]/60 text-xs font-bold uppercase tracking-wider">Saldo Total</p>
-          <p className="text-[#102216] text-3xl font-black tracking-tighter mt-1">R$ {totalRevenue.toFixed(2)}</p>
+          <p className="text-[#102216] text-3xl font-black tracking-tighter mt-1">R$ {(totalRevenue - totalExpenses).toFixed(2)}</p>
         </div>
       </section>
 

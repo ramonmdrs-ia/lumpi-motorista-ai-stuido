@@ -66,6 +66,24 @@ const Trips: React.FC = () => {
     return d.toLocaleDateString('pt-BR', options);
   };
 
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Tem certeza que deseja excluir este registro permanentemente?")) return;
+
+    try {
+      const { error } = await supabase
+        .from('entradas')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      setEntries(entries.filter(e => e.id !== id));
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao excluir registro.");
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
     const [year, month, day] = dateStr.split('-');
@@ -137,12 +155,35 @@ const Trips: React.FC = () => {
                   <span className="bg-[#1c3a2a] text-[#13ec5b] px-3 py-1 rounded-full text-[10px] font-bold uppercase">{entry.platform}</span>
                   <span className="text-xs text-text-secondary capitalize">{formatDate(entry.date)} • {getDayName(entry.date)}</span>
                 </div>
+                <div className="flex flex-col items-end">
+                  <p className="text-primary font-bold text-lg leading-none">R$ {Number(entry.amount).toFixed(2)}</p>
+                  <p className={`text-[10px] font-mono font-bold ${(Number(entry.amount) / Number(entry.km)) > 2 ? 'text-green-400' : 'text-text-secondary/50'}`}>
+                    {Number(entry.km) > 0 ? `R$ ${(Number(entry.amount) / Number(entry.km)).toFixed(2)} /km` : '-'}
+                  </p>
+                </div>
               </div>
-              <div className="grid grid-cols-4 gap-2 items-end">
-                <p className="text-primary font-bold text-lg leading-none">R$ {Number(entry.amount).toFixed(2)}</p>
-                <div className="flex items-center gap-1 text-text-secondary"><span className="material-symbols-outlined text-sm">tag</span><span className="text-xs">{entry.trips}</span></div>
-                <div className="flex items-center gap-1 text-text-secondary"><span className="material-symbols-outlined text-sm">speed</span><span className="text-xs">{entry.km}</span></div>
-                <div className="flex items-center gap-1 text-text-secondary"><span className="material-symbols-outlined text-sm">schedule</span><span className="text-xs">{entry.hours}h</span></div>
+              <div className="flex items-center gap-4 text-text-secondary mt-1 justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">tag</span><span className="text-xs">{entry.trips}</span></div>
+                  <div className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">speed</span><span className="text-xs">{entry.km}</span></div>
+                  <div className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">schedule</span><span className="text-xs">{entry.hours}h</span></div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => navigate(`/trips/edit/${entry.id}`)}
+                    className="p-2 rounded-full hover:bg-white/5 text-text-secondary hover:text-white transition-colors"
+                    title="Editar"
+                  >
+                    <span className="material-symbols-outlined text-lg">edit</span>
+                  </button>
+                  <button
+                    onClick={() => handleDelete(entry.id)}
+                    className="p-2 rounded-full hover:bg-red-500/10 text-text-secondary hover:text-red-400 transition-colors"
+                    title="Excluir"
+                  >
+                    <span className="material-symbols-outlined text-lg">delete</span>
+                  </button>
+                </div>
               </div>
             </div>
           ))
@@ -152,7 +193,7 @@ const Trips: React.FC = () => {
       <button onClick={() => navigate('/trips/new')} className="fixed bottom-24 right-6 size-14 bg-primary text-[#102216] rounded-full shadow-lg shadow-primary/20 flex items-center justify-center transition-all z-50 hover:scale-110 active:scale-95">
         <span className="material-symbols-outlined text-3xl font-bold">add</span>
       </button>
-    </div>
+    </div >
   );
 };
 

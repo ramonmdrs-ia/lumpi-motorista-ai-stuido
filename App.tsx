@@ -22,12 +22,13 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        
+
         {/* Protected Routes Wrapper */}
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/trips" element={<Trips />} />
           <Route path="/trips/new" element={<NewTrip />} />
+          <Route path="/trips/edit/:id" element={<NewTrip />} />
           <Route path="/expenses" element={<Expenses />} />
           <Route path="/expenses/new" element={<NewExpense />} />
           <Route path="/maintenance" element={<Maintenance />} />
