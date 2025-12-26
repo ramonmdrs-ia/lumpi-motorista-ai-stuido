@@ -223,8 +223,8 @@ const Register: React.FC = () => {
                 <div className="relative">
                   <input
                     className={`w-full rounded-2xl bg-black/20 border ${inviteCodeValid === true ? 'border-primary' :
-                        inviteCodeValid === false ? 'border-red-500' :
-                          'border-white/10'
+                      inviteCodeValid === false ? 'border-red-500' :
+                        'border-white/10'
                       } text-white p-4 pr-12 outline-none focus:border-primary uppercase`}
                     placeholder="XXXX-XXXX"
                     required
@@ -271,7 +271,7 @@ const Register: React.FC = () => {
                     }}
                   />
                   {/* Tooltip for Password Rules */}
-                  <div className="absolute bottom-full left-0 mb-2 w-full bg-surface-light border border-white/10 p-3 rounded-xl hidden group-focus-within:block shadow-xl z-10">
+                  <div className="absolute bottom-full left-0 mb-2 w-full bg-surface-dark-lighter border border-white/10 p-3 rounded-xl hidden group-focus-within:block shadow-xl z-10">
                     <p className="text-white text-xs font-bold mb-1">Sua senha deve ter:</p>
                     <ul className="text-[10px] text-text-secondary flex flex-col gap-1">
                       <li className={formData.password.length >= 8 ? 'text-green-400' : ''}>• Mínimo 8 caracteres</li>
