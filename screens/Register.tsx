@@ -9,12 +9,37 @@ const Register: React.FC = () => {
   const [formData, setFormData] = useState({
     name: '',
     username: '',
+    email: '',
+    phone: '',
     password: '',
     confirmPassword: ''
   });
   const [consent, setConsent] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState('');
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(false);
+
+  const checkPasswordStrength = (pass: string) => {
+    let strong = 0;
+    if (pass.length >= 8) strong++;
+    if (/[A-Z]/.test(pass)) strong++;
+    if (/[0-9!@#$%^&*]/.test(pass)) strong++;
+
+    if (strong === 3) setPasswordStrength('Forte');
+    else if (strong === 2) setPasswordStrength('Média');
+    else setPasswordStrength('Fraca');
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value.replace(/\D/g, '');
+    if (val.length > 11) val = val.slice(0, 11);
+
+    // Mask (XX) XXXXX-XXXX
+    if (val.length > 2) val = `(${val.slice(0, 2)}) ${val.slice(2)}`;
+    if (val.length > 10) val = `${val.slice(0, 10)}-${val.slice(10)}`;
+
+    setFormData(prev => ({ ...prev, phone: val }));
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,23 +60,23 @@ const Register: React.FC = () => {
       return;
     }
 
+    if (passwordStrength !== 'Forte') {
+      setError('Sua senha deve atender a todos os requisitos de segurança.');
+      return;
+    }
+
     setLoading(true);
 
     try {
       // 1. Create User in Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: `${formData.username.toLowerCase()}@lumpi.app`, // Fake email for username-based login if needed, or ask user for email. 
-        // Wait, the form asks for "Login/Usuário", not Email. Supabase Auth needs Email.
-        // I should stick to the current form or append a domain if I want to keep "username" login.
-        // Let's assume we change the form to ask for Email or use a fake domain. 
-        // The previous code used 'usuario' column. The Register form has 'username'.
-        // To properly migrate, I should probably ask for Email.
-        // However, to minimise UI changes, I'll construct an email: username@lumpi.app
+        email: formData.email, // Use REAL email now
         password: formData.password,
         options: {
           data: {
             full_name: formData.name,
-            username: formData.username.toLowerCase()
+            username: formData.username.toLowerCase(),
+            phone: formData.phone
           }
         }
       });
@@ -67,11 +92,9 @@ const Register: React.FC = () => {
               id: authData.user.id, // THE LINK
               nome_completo: formData.name,
               usuario: formData.username.toLowerCase(),
-              // We don't store password here anymore!
-              // LGPD Columns (if they exist, otherwise this might fail if I add them blindly. 
-              // Safer to stick to basics unless confirmed).
-              // 'termos_aceitos': consent, 
-              // 'data_aceite_termos': new Date().toISOString()
+              email: formData.email,
+              telefone: formData.phone
+              // LGPD Columns handled by defaults or updated later
             }
           ]);
 
@@ -95,13 +118,13 @@ const Register: React.FC = () => {
 
   return (
     <main className="bg-background-dark min-h-screen flex flex-col items-center justify-center p-4 py-12">
-      <div className="w-full max-w-[480px]">
+      <div className="w-full max-w-[520px]">
         <div className="flex flex-col items-center mb-8 gap-3 text-center">
           <div className="size-14 bg-primary/20 rounded-xl flex items-center justify-center text-primary border border-primary/20">
             <span className="material-symbols-outlined text-4xl font-bold">person_add</span>
           </div>
           <h1 className="text-white text-3xl font-bold tracking-tight">Criar Conta</h1>
-          <p className="text-text-secondary text-sm font-medium">Cadastre-se para começar a gerenciar seus ganhos.</p>
+          <p className="text-text-secondary text-sm font-medium">Preencha seus dados para acessar o sistema.</p>
         </div>
 
         <div className="bg-surface-dark border border-white/5 rounded-3xl shadow-2xl overflow-hidden">
@@ -125,28 +148,70 @@ const Register: React.FC = () => {
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                  <span className="text-white text-xs font-bold uppercase tracking-widest">Usuário</span>
+                  <input
+                    className="w-full rounded-2xl bg-black/20 border border-white/10 text-white p-4 outline-none focus:border-primary"
+                    placeholder="Ex: marcos_uber"
+                    required
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <span className="text-white text-xs font-bold uppercase tracking-widest">Telefone (WhatsApp)</span>
+                  <input
+                    className="w-full rounded-2xl bg-black/20 border border-white/10 text-white p-4 outline-none focus:border-primary"
+                    placeholder="(DD) 99999-9999"
+                    required
+                    value={formData.phone}
+                    onChange={handlePhoneChange}
+                    maxLength={15}
+                  />
+                </div>
+              </div>
+
               <div className="flex flex-col gap-2">
-                <span className="text-white text-xs font-bold uppercase tracking-widest">Login / Usuário</span>
+                <span className="text-white text-xs font-bold uppercase tracking-widest">E-mail</span>
                 <input
                   className="w-full rounded-2xl bg-black/20 border border-white/10 text-white p-4 outline-none focus:border-primary"
-                  placeholder="Ex: marcos_uber"
+                  placeholder="seu@email.com"
                   required
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-2">
-                  <span className="text-white text-xs font-bold uppercase tracking-widest">Senha</span>
+                <div className="flex flex-col gap-2 relative group">
+                  <span className="text-white text-xs font-bold uppercase tracking-widest flex justify-between">
+                    Senha
+                    <span className={`text-[10px] ${passwordStrength === 'Forte' ? 'text-green-500' :
+                      passwordStrength === 'Média' ? 'text-yellow-500' : 'text-red-500'
+                      }`}>{passwordStrength && `(${passwordStrength})`}</span>
+                  </span>
                   <input
                     className="w-full rounded-2xl bg-black/20 border border-white/10 text-white p-4 outline-none focus:border-primary"
                     placeholder="••••"
                     required
                     type="password"
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, password: e.target.value });
+                      checkPasswordStrength(e.target.value);
+                    }}
                   />
+                  {/* Tooltip for Password Rules */}
+                  <div className="absolute bottom-full left-0 mb-2 w-full bg-surface-light border border-white/10 p-3 rounded-xl hidden group-focus-within:block shadow-xl z-10">
+                    <p className="text-white text-xs font-bold mb-1">Sua senha deve ter:</p>
+                    <ul className="text-[10px] text-text-secondary flex flex-col gap-1">
+                      <li className={formData.password.length >= 8 ? 'text-green-400' : ''}>• Mínimo 8 caracteres</li>
+                      <li className={/[A-Z]/.test(formData.password) ? 'text-green-400' : ''}>• 1 Letra maiúscula</li>
+                      <li className={/[0-9!@#$%^&*]/.test(formData.password) ? 'text-green-400' : ''}>• 1 Número ou Símbolo</li>
+                    </ul>
+                  </div>
                 </div>
                 <div className="flex flex-col gap-2">
                   <span className="text-white text-xs font-bold uppercase tracking-widest">Repetir</span>
@@ -161,20 +226,21 @@ const Register: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-4 bg-primary/5 rounded-2xl cursor-pointer" onClick={() => setConsent(!consent)}>
-                <div className={`shrink-0 size-6 rounded-md border-2 flex items-center justify-center ${consent ? 'bg-primary border-primary text-[#102216]' : 'border-white/20'}`}>
+              <div className="flex items-start gap-3 p-4 bg-primary/5 rounded-2xl cursor-pointer hover:bg-primary/10 transition-colors" onClick={() => setConsent(!consent)}>
+                <div className={`shrink-0 size-6 rounded-md border-2 flex items-center justify-center transition-all ${consent ? 'bg-primary border-primary text-[#102216]' : 'border-white/20'}`}>
                   {consent && <span className="material-symbols-outlined text-sm font-bold">check</span>}
                 </div>
-                <p className="text-[11px] text-text-secondary leading-relaxed">
-                  Aceito que meus dados sejam armazenados de forma privada para fins de gestão financeira pessoal.
+                <p className="text-[11px] text-text-secondary leading-relaxed select-none">
+                  Li e concordo com os Termos e aceito que meus dados sejam armazenados de forma segura conforme a LGPD.
                 </p>
               </div>
 
               <button
                 disabled={loading}
-                className={`mt-2 w-full ${loading ? 'opacity-50' : 'bg-primary hover:bg-primary-hover'} text-[#102216] font-bold py-4 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2`}
+                className={`mt-2 w-full ${loading ? 'opacity-50 cursor-not-allowed' : 'bg-primary hover:bg-primary-hover'} text-[#102216] font-bold py-4 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2`}
               >
-                <span>{loading ? 'Cadastrando...' : 'Finalizar Cadastro'}</span>
+                {loading && <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>}
+                <span>{loading ? 'Criando conta...' : 'Finalizar Cadastro'}</span>
               </button>
             </form>
 
