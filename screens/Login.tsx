@@ -19,18 +19,16 @@ const Login: React.FC = () => {
 
     try {
       // 1. Supabase Auth Login
-      // Constructing email from username since we updated Register to do so
-      const email = `${username.toLowerCase()}@lumpi.app`;
-
+      // Use email directly
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: email,
+        email: username, // 'username' state actually holds the email/input value
         password: password
       });
 
       if (authError) throw new Error('Credenciais inválidas.');
 
       if (authData.user) {
-        // 2. Fetch Profile for "Bridge" Compatibility (local storage info used by screens)
+        // 2. Fetch Profile
         const { data: profile, error: profileError } = await supabase
           .from('usuarios')
           .select('*')
@@ -38,26 +36,25 @@ const Login: React.FC = () => {
           .single();
 
         if (profile) {
-          // Bridge: Save to localStorage so existing screens work without refactor
           localStorage.setItem('lumpi_user', JSON.stringify({
             id: authData.user.id,
             nome: profile.nome_completo || 'Motorista',
             usuario: profile.usuario,
-            email: authData.user.email // Add email to storage
+            email: authData.user.email
           }));
           navigate('/dashboard');
         } else {
-          // Profile missing? Should not happen if registered correctly.
-          // Fallback
+          // Fallback if profile not found immediately (e.g. slight delay in trigger)
+          // We can allow login anyway
           localStorage.setItem('lumpi_user', JSON.stringify({
             id: authData.user.id,
             nome: 'Motorista',
-            usuario: username,
+            usuario: authData.user.email?.split('@')[0] || 'User',
+            email: authData.user.email
           }));
           navigate('/dashboard');
         }
       }
-
     } catch (err: any) {
       setError(err.message || 'Falha na autenticação.');
     } finally {
@@ -82,11 +79,12 @@ const Login: React.FC = () => {
             )}
 
             <div className="flex flex-col gap-2">
-              <span className="text-white text-xs font-bold uppercase tracking-widest">Usuário</span>
+              <span className="text-white text-xs font-bold uppercase tracking-widest">E-mail</span>
               <input
                 className="w-full rounded-2xl bg-black/20 border border-white/10 text-white p-4 outline-none focus:border-primary"
-                placeholder="Seu login"
+                placeholder="seu@email.com"
                 required
+                type="email"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
