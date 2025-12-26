@@ -1,23 +1,36 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { UserHeader, SettingsSectionTitle, SettingsItem, DangerZone } from '../components/SettingsComponents';
+import { Card } from '../components/DashboardComponents';
 
 const Menu: React.FC = () => {
   const navigate = useNavigate();
-  const [isDeleting, setIsDeleting] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const userStr = localStorage.getItem('lumpi_user');
-    if (userStr) setUser(JSON.parse(userStr));
-    else navigate('/login');
+    if (userStr) {
+      try {
+        setUser(JSON.parse(userStr));
+      } catch {
+        navigate('/login');
+      }
+    } else {
+      navigate('/login');
+    }
   }, [navigate]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('lumpi_user');
+    navigate('/login');
+  };
 
   const exportUserData = async () => {
     if (!user) return;
     try {
-      // Coleta dados APENAS do usuário logado (Princípio de Minimização LGPD)
       const [entradas, despesas, metas] = await Promise.all([
         supabase.from('entradas').select('*').eq('user_id', user.id),
         supabase.from('despesas').select('*').eq('user_id', user.id),
@@ -39,7 +52,7 @@ const Menu: React.FC = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `meus-dados-lumpi-${user.usuario}.json`;
+      link.download = `meus-dados-lumpi-${user.usuario || 'user'}.json`;
       link.click();
       alert('Relatório de Portabilidade gerado com sucesso!');
     } catch (e) {
@@ -54,7 +67,6 @@ const Menu: React.FC = () => {
 
     setIsDeleting(true);
     try {
-      // Exclusão real baseada no user_id (Direito de Exclusão LGPD)
       await Promise.all([
         supabase.from('entradas').delete().eq('user_id', user.id),
         supabase.from('despesas').delete().eq('user_id', user.id),
@@ -64,65 +76,136 @@ const Menu: React.FC = () => {
       ]);
 
       localStorage.removeItem('lumpi_user');
-      alert('Seus dados foram excluídos com sucesso. Lamentamos sua partida.');
+      alert('Seus dados foram excluídos com sucesso.');
       navigate('/login');
     } catch (e) {
-      alert('Erro ao processar exclusão. Tente novamente mais tarde.');
+      alert('Erro ao processar exclusão.');
     } finally {
       setIsDeleting(false);
     }
   };
 
+  // Helper placeholder click
+  const handlePlaceholder = (feature: string) => {
+    alert(`Funcionalidade "${feature}" será implementada em breve!`);
+  };
+
+  if (!user) return null;
+
   return (
-    <div className="flex flex-col items-center min-h-full bg-background-dark text-white">
-      <main className="flex-1 flex flex-col gap-6 px-5 py-8 w-full max-w-[520px]">
-        <section className="flex items-center gap-4 p-5 rounded-3xl bg-surface-dark border border-white/5 shadow-xl">
-          <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center text-primary border-2 border-primary/20">
-            <span className="material-symbols-outlined text-4xl">account_circle</span>
-          </div>
-          <div className="flex flex-col flex-1">
-            <h2 className="text-lg font-bold leading-tight truncate">{user?.nome || 'Motorista'}</h2>
-            <p className="text-xs text-text-secondary mt-0.5">Sessão Segura • LGPD Ativa</p>
-          </div>
-        </section>
+    <div className="p-4 md:p-10 max-w-2xl mx-auto flex flex-col gap-2 pb-32">
+      <h1 className="text-3xl font-black text-white px-2">Configurações</h1>
 
-        <section className="flex flex-col gap-2">
-          <h3 className="text-[10px] font-bold text-text-secondary mb-1 uppercase tracking-[0.2em] px-2">Privacidade e Dados</h3>
-          <div className="bg-surface-dark/50 rounded-3xl border border-white/5 overflow-hidden">
-            <button
-              onClick={exportUserData}
-              className="w-full flex items-center gap-4 p-4 border-b border-white/5 hover:bg-white/5 transition-all text-left"
-            >
-              <div className="flex items-center justify-center size-10 rounded-xl bg-primary/10 text-primary">
-                <span className="material-symbols-outlined">download</span>
-              </div>
-              <span className="text-sm font-semibold flex-1">Portabilidade (Exportar Meus Dados)</span>
-              <span className="material-symbols-outlined text-white/20">chevron_right</span>
-            </button>
-            <button
-              onClick={handleDeleteAllData}
-              disabled={isDeleting}
-              className="w-full flex items-center gap-4 p-4 hover:bg-red-500/5 transition-all text-left text-red-400"
-            >
-              <div className="flex items-center justify-center size-10 rounded-xl bg-red-500/10">
-                <span className="material-symbols-outlined">delete_forever</span>
-              </div>
-              <span className="text-sm font-semibold flex-1">Excluir Minha Conta e Meus Dados</span>
-              <span className="material-symbols-outlined text-white/20">chevron_right</span>
-            </button>
-          </div>
-        </section>
+      <UserHeader
+        name={user.nome || 'Motorista'}
+        email={user.email || 'usuario@lumpi.app'}
+        planLabel="Plano PRO"
+        roleLabel="AdminVitalício"
+      />
 
-        <section className="mt-4 flex flex-col gap-4">
-          <button 
-            onClick={() => { localStorage.removeItem('lumpi_user'); navigate('/login'); }}
-            className="flex items-center justify-center gap-2 p-4 rounded-2xl bg-white/5 text-white font-bold border border-white/10 hover:bg-white/10 transition-all"
-          >
-            <span className="material-symbols-outlined">logout</span>
-            Encerrar Sessão
-          </button>
-        </section>
-      </main>
+      <SettingsSectionTitle label="Conta" />
+      <Card className="!p-0 overflow-hidden flex flex-col">
+        <SettingsItem
+          title="Meu Perfil"
+          description="Nome, email e dados pessoais"
+          iconName="person"
+          onClick={() => handlePlaceholder('Meu Perfil')}
+        />
+        <SettingsItem
+          title="Meu Veículo"
+          description="Modelo, ano e consumo médio"
+          iconName="directions_car"
+          onClick={() => handlePlaceholder('Meu Veículo')}
+        />
+        <SettingsItem
+          title="Segurança"
+          description="Autenticação 2FA e senha"
+          iconName="shield"
+          onClick={() => handlePlaceholder('Segurança')}
+        />
+      </Card>
+
+      <SettingsSectionTitle label="Gestão" />
+      <Card className="!p-0 overflow-hidden flex flex-col">
+        <SettingsItem
+          title="Orçamentos"
+          description="Limites de gastos por categoria"
+          iconName="account_balance_wallet"
+          onClick={() => handlePlaceholder('Orçamentos')}
+        />
+        <SettingsItem
+          title="Manutenções"
+          description="Registros e alertas de revisão"
+          iconName="build"
+          onClick={() => navigate('/maintenance')}
+        />
+        <SettingsItem
+          title="Metas"
+          description="Definir metas diárias e mensais"
+          iconName="flag"
+          onClick={() => navigate('/goals')}
+        />
+        <SettingsItem
+          title="Relatórios"
+          description="Exportar dados e análises (LGPD)"
+          iconName="download"
+          onClick={exportUserData}
+        />
+      </Card>
+
+      <SettingsSectionTitle label="Comunidade" />
+      <Card className="!p-0 overflow-hidden flex flex-col">
+        <SettingsItem
+          title="Ranking Semanal"
+          description="Compare seu desempenho"
+          iconName="trophy"
+          onClick={() => navigate('/ranking')}
+        />
+        <SettingsItem
+          title="Insígnias"
+          description="Suas conquistas e medalhas"
+          iconName="military_tech"
+          onClick={() => handlePlaceholder('Insígnias')}
+        />
+        <SettingsItem
+          title="Indicações"
+          description="Ganhe meses grátis indicando"
+          iconName="group_add"
+          onClick={() => handlePlaceholder('Indicações')}
+        />
+      </Card>
+
+      <SettingsSectionTitle label="Preferências" />
+      <Card className="!p-0 overflow-hidden flex flex-col">
+        <SettingsItem
+          title="Notificações"
+          description="Alertas de metas e lembretes"
+          iconName="notifications"
+          onClick={() => handlePlaceholder('Notificações')}
+        />
+        <SettingsItem
+          title="Aparência"
+          description="Tema automático (Dark/Light)"
+          iconName="palette"
+          rightElement={<span className="text-xs text-text-secondary font-bold px-2">Automático</span>}
+        />
+        <SettingsItem
+          title="Privacidade"
+          description="Política de privacidade e Termos"
+          iconName="lock"
+          onClick={() => handlePlaceholder('Privacidade')}
+        />
+      </Card>
+
+      <DangerZone
+        onLogout={handleLogout}
+        onDeleteAccount={handleDeleteAllData}
+      />
+
+      <footer className="mt-8 text-center flex flex-col gap-1 pb-8">
+        <p className="text-white font-bold text-sm">Controladora de Rentabilidade v1.0.0</p>
+        <p className="text-text-secondary text-xs">Feito com ❤️ para motoristas</p>
+      </footer>
     </div>
   );
 };

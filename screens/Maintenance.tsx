@@ -26,7 +26,7 @@ const Maintenance: React.FC = () => {
   const handleSaveMaintenance = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isConfigured || !userId) return alert("Sessão expirada ou erro de configuração.");
-    
+
     setLoading(true);
     try {
       const { error } = await supabase
@@ -36,7 +36,7 @@ const Maintenance: React.FC = () => {
           type: formData.type,
           cost: parseFloat(formData.amount.replace(',', '.')),
           date: formData.date,
-          odometer: 0 
+          odometer: 0
         }]);
 
       if (error) throw error;
@@ -69,39 +69,41 @@ const Maintenance: React.FC = () => {
           <form className="flex flex-col gap-4" onSubmit={handleSaveMaintenance}>
             <div>
               <label className="block text-xs font-medium text-text-secondary mb-1 uppercase">Serviço</label>
-              <select 
+              <select
                 value={formData.type}
-                onChange={(e) => setFormData({...formData, type: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                 className="w-full bg-[#111813] border border-[#3b5443] rounded-lg px-3 py-3 text-white text-sm outline-none"
               >
                 <option>Troca de Óleo</option>
                 <option>Abastecimento</option>
                 <option>Pneus</option>
                 <option>Freios</option>
+                <option>Revisão completa</option>
+                <option>Outro</option>
               </select>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-text-secondary mb-1 uppercase">Custo (R$)</label>
-                <input 
+                <input
                   required
                   value={formData.amount}
-                  onChange={(e) => setFormData({...formData, amount: e.target.value})}
-                  className="w-full bg-[#111813] border border-[#3b5443] rounded-lg px-3 py-3 text-white text-sm outline-none" 
-                  placeholder="0,00" 
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  className="w-full bg-[#111813] border border-[#3b5443] rounded-lg px-3 py-3 text-white text-sm outline-none"
+                  placeholder="0,00"
                 />
               </div>
               <div>
                 <label className="block text-xs font-medium text-text-secondary mb-1 uppercase">Data</label>
-                <input 
-                  type="date" 
+                <input
+                  type="date"
                   value={formData.date}
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
-                  className="w-full bg-[#111813] border border-[#3b5443] rounded-lg px-3 py-3 text-white text-sm outline-none" 
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  className="w-full bg-[#111813] border border-[#3b5443] rounded-lg px-3 py-3 text-white text-sm outline-none"
                 />
               </div>
             </div>
-            <button 
+            <button
               type="submit"
               disabled={loading}
               className="mt-2 w-full bg-primary hover:bg-primary-hover text-[#102216] font-bold py-4 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
