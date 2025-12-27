@@ -72,7 +72,7 @@ const Login: React.FC = () => {
     setError('');
     setLoading(true);
     try {
-      const redirectUrl = window.location.origin + '/#/dashboard';
+      const redirectUrl = `${window.location.origin}${window.location.pathname}#/dashboard`.replace(/\/+$/, '');
       console.log('Redirecting to:', redirectUrl);
 
       const { error } = await supabase.auth.signInWithOAuth({

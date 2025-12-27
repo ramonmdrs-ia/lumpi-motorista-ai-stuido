@@ -18,6 +18,7 @@ import Success from './screens/Success';
 import Admin from './screens/Admin'; // Changed from Analytics to Admin? No, keep Analytics too. Add Admin.
 import Analytics from './screens/Analytics';
 import Layout from './components/Layout';
+
 const App: React.FC = () => {
   return (
     <HashRouter>
@@ -49,7 +50,6 @@ const App: React.FC = () => {
         </Route>
 
         <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </HashRouter>
   );
