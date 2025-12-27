@@ -12,65 +12,46 @@ const Dashboard: React.FC = () => {
   const [recentEntries, setRecentEntries] = useState<any[]>([]);
   const [userName, setUserName] = useState<string>('Motorista');
   const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkUser = async () => {
-      // 1. Check local storage first (sync)
+    // Rely on Layout for initial sync. 
+    // Just reactive update if someone else changes localStorage.
+    const syncLocal = () => {
       const userStr = localStorage.getItem('lumpi_user');
       if (userStr) {
         try {
-          const user = JSON.parse(userStr);
-          if (user) {
-            const rawName = user.nome || 'Motorista';
-            setUserName(typeof rawName === 'string' ? rawName.split(' ')[0] : 'Motorista');
-            setUserId(user.id ? String(user.id) : null);
-            return;
-          }
+          const u = JSON.parse(userStr);
+          setUserName(u.nome ? u.nome.split(' ')[0] : 'Motorista');
+          setUserId(u.id);
         } catch (e) {
-          console.error("Erro ao ler usuário do localStorage");
+          console.error("Dashboard: Erro ao ler lumpi_user");
         }
       }
-
-      // 2. If no local user, check Supabase session (for OAuth/Google)
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (session?.user) {
-        // Fetch Profile
-        const { data: profile } = await supabase
-          .from('usuarios')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        const userData = {
-          id: session.user.id,
-          nome: profile?.nome_completo || session.user.user_metadata?.full_name || 'Motorista',
-          usuario: profile?.usuario || session.user.email?.split('@')[0] || 'User',
-          email: session.user.email,
-          plano: profile?.plano || 'free',
-          pro_until: profile?.pro_until,
-          avatar_url: profile?.avatar_url || session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture
-        };
-
-        localStorage.setItem('lumpi_user', JSON.stringify(userData));
-        setUserName(userData.nome.split(' ')[0]);
-        setUserId(userData.id);
-      } else {
-        navigate('/login');
-      }
+      setLoading(false);
     };
 
-    checkUser();
+    syncLocal();
 
-    // Listen for auth changes (optional but good for robustness)
+    // Listen for auth changes to handle SIGNED_OUT globally
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Dashboard Auth Event:', event, 'Session active:', !!session);
       if (event === 'SIGNED_OUT') {
+        console.log('Dashboard: Evento SIGNED_OUT detectado. Saindo...');
         localStorage.removeItem('lumpi_user');
         navigate('/login');
       }
     });
 
-    return () => subscription.unsubscribe();
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'lumpi_user') syncLocal();
+    };
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [navigate]);
 
   useEffect(() => {
@@ -126,6 +107,14 @@ const Dashboard: React.FC = () => {
         <span className="material-symbols-outlined text-5xl text-yellow-500">warning</span>
         <h2 className="text-2xl font-bold">Banco não conectado</h2>
         <p className="text-text-secondary">Verifique as chaves do Supabase em supabaseClient.ts</p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="h-screen w-full bg-background-dark flex items-center justify-center">
+        <div className="size-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
       </div>
     );
   }

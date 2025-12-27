@@ -8,23 +8,92 @@ const Layout: React.FC = () => {
   const navigate = useNavigate();
   const isActive = (path: string) => location.pathname.startsWith(path);
   const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const userStr = localStorage.getItem('lumpi_user');
-    if (userStr) {
+    const initLayout = async (retryCount = 0) => {
       try {
-        const parsed = JSON.parse(userStr);
-        if (parsed) {
-          setUser(parsed);
-          refreshProfile(parsed.id);
+        // 1. Get Supabase session
+        const { data: { session } } = await supabase.auth.getSession();
+
+        // Detect current URL state
+        const hasHash = window.location.hash.includes('access_token=') || window.location.hash.includes('error=');
+        
+        // If we have a hash but no session, WAIT. This is the crucial part for Google Login.
+        if (!session && hasHash && retryCount < 10) {
+          console.log(`Layout: Detectada hash de login/oauth, aguardando sessão... (tentativa ${retryCount + 1}/10)`);
+          setTimeout(() => initLayout(retryCount + 1), 500);
+          return;
         }
-      } catch (e) {
-        navigate('/login');
+
+        // If we still have a hash but it's an error, let it pass to error handling or login
+        if (!session && window.location.hash.includes('error=')) {
+           console.log('Layout: Erro detectado na hash do OAuth.');
+        }
+
+        // 2. Clear Session Logic
+        if (session?.user) {
+          console.log('Layout: Sessão ativa confirmada:', session.user.email);
+          // Get local user
+          const userStr = localStorage.getItem('lumpi_user');
+          let localUser = null;
+          if (userStr) {
+            try {
+              localUser = JSON.parse(userStr);
+            } catch (e) {
+              console.error("Layout: Erro ao parsear lumpi_user");
+            }
+          }
+
+          // 3. Sync Logic
+          if (!localUser || localUser.id !== session.user.id) {
+            console.log('Layout: Sincronizando perfil com o banco...');
+            const { data: profile } = await supabase
+              .from('usuarios')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+
+            const userData = {
+              id: session.user.id,
+              nome: profile?.nome_completo || session.user.user_metadata?.full_name || 'Motorista',
+              usuario: profile?.usuario || session.user.email?.split('@')[0] || 'User',
+              email: session.user.email,
+              plano: profile?.plano || 'free',
+              pro_until: profile?.pro_until,
+              avatar_url: profile?.avatar_url || session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture
+            };
+
+            localStorage.setItem('lumpi_user', JSON.stringify(userData));
+            setUser(userData);
+          } else {
+            setUser(localUser);
+          }
+          refreshProfile(session.user.id);
+        } else {
+          // No session AND no transition hash
+          if (!hasHash) {
+            console.log('Layout: Sem sessão e sem hash. Redirecionando para login...');
+            navigate('/login');
+          } else {
+            console.log('Layout: Aguardando tokens (tentativas esgotadas ou hash pendente), mantendo estado.');
+          }
+        }
+      } finally {
+        setLoading(false);
       }
-    } else {
-      navigate('/login');
-    }
+    };
+
+    initLayout();
   }, [navigate]);
+
+  if (loading) {
+    return (
+      <div className="h-screen w-full bg-background-dark flex items-center justify-center">
+        <div className="size-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const refreshProfile = async (userId: string) => {
     try {
@@ -67,6 +136,7 @@ const Layout: React.FC = () => {
   ];
 
   const handleLogout = async () => {
+    console.log('Layout: Iniciando logout manual...');
     await supabase.auth.signOut();
     localStorage.removeItem('lumpi_user');
     navigate('/login');
