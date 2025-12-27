@@ -6,7 +6,7 @@
 
 ## 🚗 Sobre o Projeto
 
-O **Lumpi** é uma plataforma robusta e inteligente desenvolvida especificamente para motoristas de aplicativos (Uber, 99, iFood, Indriver) que desejam ter controle total sobre suas finanças e produtividade. O sistema oferece uma visão clara da rentabilidade por quilômetro rodado, gestão de despesas, definição de metas e análises detalhadas de performance.
+O **Lumpi-Motorista** é uma plataforma robusta e inteligente desenvolvida especificamente para motoristas de aplicativos (Uber, 99, iFood, Indriver) que desejam ter controle total sobre suas finanças e produtividade. O sistema oferece uma visão clara da rentabilidade por quilômetro rodado, gestão de despesas, definição de metas e análises detalhadas de performance.
 
 ## ✨ Funcionalidades Principais
 
